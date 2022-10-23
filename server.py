@@ -1,4 +1,4 @@
-## solve unequal update rate problem, try set delay?
+
 import socket 
 import threading
 import json
@@ -209,18 +209,23 @@ def handle_client(conn, addr): #Thread function
                     print("recvLocJson",recvLocJson)
                     print(recvLocJson[0]['index'][0])
                     print(recvLocJson[0]['coordination'][0]) # Coordination of 1st robot
-                    counter = 0
-                    for i in recvLocJson[0]['index']: #for # of detected robot
-                        print(i)
+                    
+                    listForUpdate = []
+                    for i in range(len(recvLocJson)):
+                        listForUpdate.append(recvLocJson[i]['index'][0])
+                    print("captured robots'ID",listForUpdate)
+                        
+                    for i in listForUpdate: #for # of detected robot
+                        print("captured robots'ID",i)
                         for robot in Robot.robotlist:
                             print("Checking match ar tag")
                             print(robot.arindex, "==" ,i)
                             if int(robot.arindex) == int(i):
-                                print("updating loc")
-                                print(recvLocJson[0]['coordination'][counter])
+                                print("updating loc of robot-ID: ",i)
+                                print(recvLocJson[0]['coordination'][0])
                                 print(recvLocJson[0]['orientation'])
-                                robot.setloc(recvLocJson[0]['coordination'][counter],recvLocJson[0]['orientation'])
-                                counter+=1
+                                robot.setloc(recvLocJson[0]['coordination'][0],recvLocJson[0]['orientation'])
+                                
                     for robot in Robot.robotlist:
                         robot.displayInfo()
             #recvLocJson 
