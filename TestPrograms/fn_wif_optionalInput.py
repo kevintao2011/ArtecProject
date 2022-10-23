@@ -1,4 +1,7 @@
+import json
 import socket
+
+# from server import Robot
 
 class msg:
     def __init__(self,source,target=[-1],cmd = "Null"):
@@ -6,9 +9,30 @@ class msg:
         self.target = target
         self.cmd = cmd
         
+    def __init__(self,cmd,data):
+        self.cmd = cmd
+        self.data = data
+    
+    
+    def decode (message):
+        try:
+            jsondict = json.loads(message)
+            msgObj = msg(jsondict["source"],jsondict["target"],jsondict["cmd"])
+            return msgObj
+        
+        except:
+            return message #return a String
+            
+   
+def isJSON(Text):
+    try:
+        return json.dumps(Text)
+    except:
+        return False         
+    
+        
 
 
-('127.0.0.1', 50368)
 
 class device:
     numberOfDevice = 0
@@ -137,3 +161,24 @@ listB = [1,2,3,4,5]
 print(1 in listB)
 print("length of list: ",len(d.lista))
 print(b.__dict__)
+
+txt = "this"
+cmd = txt.split(",")
+print(cmd)
+
+class b:
+    
+    blist = []
+    def __init__(self, num):
+        self.num=num
+        self.blist.append(self)
+        
+class c(b):
+    def __init__(self, num):
+        b.__init__(self, num)
+        self.num=num
+        
+          
+p = c(2) 
+print(b.blist[0],p)
+print(b.blist[0]==(p))

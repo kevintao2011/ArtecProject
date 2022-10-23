@@ -10,8 +10,8 @@ HEADER = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-SERVER = "192.168.1.40"
-SERVER = "localhost"
+SERVER = "192.168.1.17"
+# SERVER = "localhost"
 ADDR = (SERVER, PORT)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -19,6 +19,7 @@ client.connect(ADDR)
     
 def jsonSend(text): # send JSON with  cmd:host data:unify action
     #print("sent request")
+    print()
     print('Execting function: jsonSend.........')
     print('Dumping into JSON text.........')
     mymsg = json.dumps(msg("Host",text).__dict__) #_dict_ send in plaint json text

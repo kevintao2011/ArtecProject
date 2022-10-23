@@ -44,6 +44,7 @@ class Robot(device):
         self.p2 = (0,0)
         self.p3 = (0,0)
         self.p4 = (0,0)
+        self.CLI_cmd = "Keep Standby"
         print("Added new Robot")
     def setloc(self,locations,orientation): 
     #self = robotobj , locations = list of list , orientation = number
@@ -56,9 +57,9 @@ class Robot(device):
         print("Loc updated")
     def displayInfo(self):
         print("**********Information**********")
-        print("Ar Tag index:     ",self.arindex)
+        print("Ar Tag index:     ",self.index)
         if (self.arindex==-1):
-            print("Ar Tag index:     ","not yet recognised")
+            print("Ar Tag index:     ","Registered but not yet recognised by Camera")
         else:
             print("Ar Tag index:     ",self.arindex)
         print("IP address:       ",self.addr)
@@ -168,35 +169,68 @@ def handle_client(conn, addr): #Thread function
             elif (msg == "From Object detection"):
                 conn.send(("Msg received:"f"{msg}".encode(FORMAT)))    
             
+            
             # check received command
-            elif msg[0]=='{':
+            elif msg[0]=='{': #if receiving a JSON TEXT
                 print("Host :receiveing JSON")
                 data = json.loads(msg)
                 
                 print('Receiving cmd:',data['cmd'])
                 print('Receiving data:',data['data'])
                 print("Type",type(data))
+                
+                
                 # for studuino response 
-                if(data['cmd']=="Request"):
+                if(data['cmd']=="Request"): #if it is regular update from robot
                     print(currentDevice.index,"From device: Requesting")
                     # if(currentDevice.nextAction==""):
-                    if(local_CLI_cmd==""):
-                        conn.send(("Keep Standby".encode(FORMAT)))
-                    else: #if(currentDevice.nextAction==data['data']):
-                        conn.send((local_CLI_cmd.encode(FORMAT)))
+                    # if(local_CLI_cmd==""):#if there is an command issued to that robot
+                    #     conn.send(("Keep Standby".encode(FORMAT)))
+                    # else: #if(currentDevice.nextAction==data['data']):
+                    #     conn.send((local_CLI_cmd.encode(FORMAT)))
+                    
+                    
                     # add check if this device is robot , if robot have arindex then dun need to this
                     for robot in Robot.robotlist:
                         if(conn==robot.connObj):
-                            robot.arindex=data['data']
+                            robot.arindex=data['data'] 
+                            print("action = ", robot.CLI_cmd)
+                            conn.send((robot.CLI_cmd.encode(FORMAT)))
+                        # if(robot.CLI_cmd==""):#if there is an command issued to that robot
+                        #     conn.send(("Keep Standby".encode(FORMAT)))
+                        # else: #if(currentDevice.nextAction==data['data']):
+                        
+                            
+                            
                 # for CLI
                 elif(data['cmd']=="Host"):
                     print(currentDevice.index,"CLI: Sending action to host")
-                    CLI_cmd = data['data']
-                    print("CLI_cmd:",local_CLI_cmd)
+                    if(len(data['data'].split(","))==1):
+                        for robot in Robot.robotlist:
+                            robot.CLI_cmd = data['data']
+                    else:
+                        try:
+                            print("specific command")
+                            target = data['data'].split(",")[0]
+                            print("Target: ",target)
+                            action = data['data'].split(",")[1]
+                            print("Action: ",action)
+                            for robot in Robot.robotlist:
+                                print("General command")
+                                print(robot.arindex,target)
+                                if(int(robot.arindex)==int(target)):
+                                    robot.CLI_cmd = action
+                        except:
+                            print("Robot not existed!")
+                    #CLI_cmd = data['data']
+                    # print("CLI_cmd:",local_CLI_cmd)
                     print("Sending Repond........")
-                    conn.send("Received".encode(FORMAT))
+                    conn.send("Received".encode(FORMAT)) #to cli
+                    
+                    
+                #For Camera    
                 elif(data['cmd']=="OD"):
-                    conn.send("Device Location Received from server".encode(FORMAT))
+                    conn.send("Device Location Received from server".encode(FORMAT)) #to OD
                     #{'cmd': 'OD', 
                     # 'data': '[{"index": [[9]], "coordination": [[271.0, 367.0], [242.0, 260.0], [325.0, 235.0], [356.0, 351.0]],
                     # "orientation": 255}]'}
