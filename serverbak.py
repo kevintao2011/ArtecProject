@@ -168,8 +168,9 @@ def handle_client(conn, addr): #Thread function
             elif (msg == "From Object detection"):
                 conn.send(("Msg received:"f"{msg}".encode(FORMAT)))    
             
+            
             # check received command
-            elif msg[0]=='{':
+            elif msg[0]=='{': #if receiving a JSON TEXT
                 print("Host :receiveing JSON")
                 data = json.loads(msg)
                 
@@ -177,10 +178,10 @@ def handle_client(conn, addr): #Thread function
                 print('Receiving data:',data['data'])
                 print("Type",type(data))
                 # for studuino response 
-                if(data['cmd']=="Request"):
+                if(data['cmd']=="Request"): #if it is regular update from robot
                     print(currentDevice.index,"From device: Requesting")
                     # if(currentDevice.nextAction==""):
-                    if(local_CLI_cmd==""):
+                    if(local_CLI_cmd==""):#if there is an command issued to that robot
                         conn.send(("Keep Standby".encode(FORMAT)))
                     else: #if(currentDevice.nextAction==data['data']):
                         conn.send((local_CLI_cmd.encode(FORMAT)))

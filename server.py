@@ -1,13 +1,12 @@
-
 import socket 
 import threading
 import json
 import time
 from unittest import case
 import _thread
+FIELD_SIZE = (640,240)
 
 HEADER = 64
-
 devicelist = []
 # SERVER = "192.168.1.8"
 SERVER = "192.168.1.17"
