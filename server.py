@@ -5,18 +5,23 @@ import time
 from unittest import case
 import _thread
 FIELD_SIZE = (640,240)
+devicelist = []
 
 HEADER = 64
-devicelist = []
+
 # SERVER = "192.168.1.8"
-SERVER = "192.168.1.17"
+# SERVER = "192.168.1.17"
 # SERVER = "192.168.1.40"
-# SERVER = "127.0.0.1"
+SERVER = "127.0.0.1"
+# SERVER = "10.22.1.126" #winstar
+# SERVER = "192.168.0.181" #
+# SERVER = "172.20.10.12" #phone
+# SERVER = "192.168.31.36" #Xiaomi
 PORT = 5050
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-CLI_cmd = ""
+general_cmd = ""
 # lock = threading.Lock()
 
 class device(object):
@@ -104,7 +109,7 @@ def convertJson(text):
     return mymsg
 
 def handle_client(conn, addr): #Thread function
-    global CLI_cmd # access the global CLI_cmd variable
+    global general_cmd # access the global CLI_cmd variable
     # print(f"[NEW CONNECTION] {addr} connected.")
     duplicated = False
     currentDevice= any
@@ -113,10 +118,14 @@ def handle_client(conn, addr): #Thread function
     # Now many local connection, current program cannot classify them
     for devices in devicelist: #Check if new connection
         print("Host : Old addr:",devices.addr," New addr:",addr)
-        if devices.addr[0]==addr[0]: #if duplicated
+        if (devices.addr[0]==addr[0] and addr[0]!=SERVER): #if duplicated
             print("Host : device Duplicated")
             devices.addr = addr
             devices.connObj = conn
+            for robots in Robot.robotlist:
+                if robots.addr[0]==addr[0]:
+                    robots.addr = addr
+                    robots.connObj = conn
             print("Host : Updated socket") #reconnection will chg socket and the cnnection
             duplicated = True
             currentDevice= devices
@@ -140,12 +149,10 @@ def handle_client(conn, addr): #Thread function
     print("currentDevice",currentDevice.index)
     connected = True
     while connected: #close loop for waiting message
-        #lock.acquire()
-        local_CLI_cmd = CLI_cmd
-        #print(currentDevice.index,"CLI_cmd:",local_CLI_cmd) #duplicate at first
-        # print("waiting new msg...")
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        # print("Received new msg...")
+        
+        # bufsize should be a relatively small power of 2, for example, 4096
+        msg_length = conn.recv(HEADER).decode(FORMAT) 
+        
         
         if msg_length:
             print()
@@ -190,11 +197,27 @@ def handle_client(conn, addr): #Thread function
                     
                     
                     # add check if this device is robot , if robot have arindex then dun need to this
+                    print(len(Robot.robotlist))
                     for robot in Robot.robotlist:
+                        print("conn:",conn," New addr:",robot.connObj)
                         if(conn==robot.connObj):
-                            robot.arindex=data['data'] 
-                            print("action = ", robot.CLI_cmd)
-                            conn.send((robot.CLI_cmd.encode(FORMAT)))
+                            robot.arindex=data['data']
+                            print("Orientation:",robot.orientation) 
+                            if(robot.CLI_cmd)=='90':
+                                ori = int(robot.orientation)
+                                if(ori<80):
+                                    robot.CLI_cmd = 'cw' 
+                                elif(ori>100):
+                                    robot.CLI_cmd = 'ccw'
+                                else: 
+                                    robot.CLI_cmd = 'stop'
+                                print("action = ", robot.CLI_cmd)
+                                conn.send((robot.CLI_cmd.encode(FORMAT)))
+                                robot.CLI_cmd = '90'
+                            else:
+                                print("action = ", robot.CLI_cmd)
+                                conn.send((robot.CLI_cmd.encode(FORMAT)))
+                            
                         # if(robot.CLI_cmd==""):#if there is an command issued to that robot
                         #     conn.send(("Keep Standby".encode(FORMAT)))
                         # else: #if(currentDevice.nextAction==data['data']):
@@ -205,8 +228,10 @@ def handle_client(conn, addr): #Thread function
                 elif(data['cmd']=="Host"):
                     print(currentDevice.index,"CLI: Sending action to host")
                     if(len(data['data'].split(","))==1):
+                        print("General command")
                         for robot in Robot.robotlist:
                             robot.CLI_cmd = data['data']
+                            
                     else:
                         try:
                             print("specific command")
@@ -215,10 +240,22 @@ def handle_client(conn, addr): #Thread function
                             action = data['data'].split(",")[1]
                             print("Action: ",action)
                             for robot in Robot.robotlist:
-                                print("General command")
                                 print(robot.arindex,target)
                                 if(int(robot.arindex)==int(target)):
                                     robot.CLI_cmd = action
+                            # command = ['data'].split(",")
+                            # target = []
+                            # for i in range(len(command)-1):
+                            #     target.append(command[i])
+                            # print("Target: ",target)
+                            # action = command[len(command)-1]
+                            # print("Action: ",action)
+                            # for robot in Robot.robotlist:
+                            #     print("General command")
+                            #     print(robot.arindex,target)
+                            #     for i in range(len(target)):
+                            #         if(int(robot.arindex)==int(target[i])):
+                            #             robot.CLI_cmd = action
                         except:
                             print("Robot not existed!")
                     #CLI_cmd = data['data']
