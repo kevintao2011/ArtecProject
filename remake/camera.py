@@ -11,6 +11,9 @@ import json
 # Init for Connection
 
 import tkinter as tk
+import sys
+sys.path.append('./')
+import lib
 
     
 #-- Camera Init --
@@ -29,11 +32,11 @@ fps = int(cap.get(5))
 # Connection variable
 HEADER = 64
 # SERVER = "10.22.1.126"
-SERVER = "127.0.0.1"
+SERVER = lib.SERVER
 # SERVER = "172.20.10.12"
 # SERVER = "192.168.31.36" #Xiaomi
-PORT = 5050
-ADDR = (SERVER, PORT)
+PORT = lib.CAM_PORT
+ADDR = lib.CAM_ADDR
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
 # Connection variable
@@ -65,14 +68,17 @@ def send(msg):
     send_length += b' ' * (HEADER - len(send_length))
     client.send(send_length)
     client.send(message)
-    a = client.recv(2048).decode(FORMAT)
-    print(a)
+    # a = client.recv(2048).decode(FORMAT)
+    # print(a)
     
 def jsonSend(sender,text): # send JSON with  cmd:host data:unify action
     #print("sent request")
     print('Function: jsonSend')
-    mymsg = json.dumps(msg("OD",text).__dict__) #_dict_ send in plaint json text
+    # mymsg = json.dumps(msg("OD",text).__dict__) #_dict_ send in plaint json text
+    mymsg = lib.msg("OD",text).toJSON() #edited
+    print(lib.logg(),"dumped")
     send(mymsg)
+    print(lib.logg(),"sent")
 
 def vectorAngle(p1,p2):
     p1 = [p1[0]+ 1j*p1[1]]
@@ -120,8 +126,12 @@ def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
         locJSON = json.dumps([ob.__dict__ for ob in loclist])
         print("locJSON passed")
         msgTxt = msg("OD",locJSON).__dict__
+        # msgTxt = lib.msg("OD",locJSON).toJSON
         print("MSG TXT : ",msgTxt , type(msgTxt))
-        jsonSend("OD",msgTxt)
+        
+        
+        jsonSend(lib.showtime(),msgTxt)
+        # lib.send(client,msgTxt)
     
     img = cv2.putText(img, str(len(bbox)),(50, 50),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
     img = cv2.putText(img, fpsstring,(50, 100),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
@@ -131,20 +141,22 @@ def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
  
 if __name__ == "__main__":    
     # Connection Init
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(ADDR)
-    print("connected")
-    send("From Object detection")
+    try:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(ADDR)
+        print("connected")
+        send("From Object detection")
+    except:
+        pass
     # Connection Init
             
     while True:
-        
+        print("Hi")
         if VideoCap: _,img = cap.read()
         else:
             pass
         if cv2.waitKey(1)==113:
             break
         findAruco(img)
-        
         cv2.imshow("img",img)
-
+    

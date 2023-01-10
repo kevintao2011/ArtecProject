@@ -16,5 +16,13 @@
             "command": "extension.executeFile",
             "priority": 3.5
         }
+    ],
+    "python.autoComplete.extraPaths": [
+        "C:/Users/taoch/OneDrive - City University of Hong Kong - Student/Artec3/remake",
+        
+    ],
+    "python.analysis.extraPaths": [
+        "C:/Users/taoch/OneDrive - City University of Hong Kong - Student/Artec3/remake",
+        "C:/Users/taoch/Anaconda3/envs/venv_py39/Library/lib"
     ]
 }

@@ -18,7 +18,7 @@ SERVER = "192.168.31.36" #Xiaomi"
 # SERVER = "localhost"
 ADDR = (SERVER, PORT)
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
     
 def jsonSend(text): # send JSON with  cmd:host data:unify action
@@ -33,10 +33,10 @@ def jsonSend(text): # send JSON with  cmd:host data:unify action
 
     
 def send(msg):
-    message = msg.encode(FORMAT) #turn into binary
-    msg_length = len(message)#get msg length
-    send_length = str(msg_length).encode(FORMAT) #turn int length to bin
-    send_length += b' ' * (HEADER - len(send_length)) #put space at the end space 
+    message = msg.encode(FORMAT)
+    msg_length = len(message)
+    send_length = str(msg_length).encode(FORMAT)
+    send_length += b' ' * (HEADER - len(send_length))
     client.send(send_length)
     client.send(message)
     print("sent")
