@@ -23,7 +23,6 @@ ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
 general_cmd = ""
-FIELD_SIZE(1000,700)
 # lock = threading.Lock()
 
 class device(object):
@@ -110,10 +109,7 @@ def convertJson(text):
     mymsg = json.dumps(msg("Host",text).__dict__) #_dict_ send in plaint json text
     return mymsg
 
-
-    
-
-def handle_client(conn:socket, addr): #Thread function
+def handle_client(conn, addr): #Thread function
     global general_cmd # access the global CLI_cmd variable
     # print(f"[NEW CONNECTION] {addr} connected.")
     duplicated = False
@@ -160,7 +156,7 @@ def handle_client(conn:socket, addr): #Thread function
         
         
         if msg_length:
-            # print()
+            print()
             msg_length = int(msg_length)
             
             msg = conn.recv(msg_length).decode(FORMAT)
@@ -183,17 +179,17 @@ def handle_client(conn:socket, addr): #Thread function
             
             # check received command
             elif msg[0]=='{': #if receiving a JSON TEXT
-                # print("Host :receiveing JSON")
+                print("Host :receiveing JSON")
                 data = json.loads(msg)
                 
-                # print('Receiving cmd:',data['cmd'])
-                # print('Receiving data:',data['data'])
-                # print("Type",type(data))
+                print('Receiving cmd:',data['cmd'])
+                print('Receiving data:',data['data'])
+                print("Type",type(data))
                 
                 
                 # for studuino response 
                 if(data['cmd']=="Request"): #if it is regular update from robot
-                    # print(currentDevice.index,"From device: Requesting")
+                    print(currentDevice.index,"From device: Requesting")
                     # if(currentDevice.nextAction==""):
                     # if(local_CLI_cmd==""):#if there is an command issued to that robot
                     #     conn.send(("Keep Standby".encode(FORMAT)))
@@ -219,7 +215,6 @@ def handle_client(conn:socket, addr): #Thread function
                                 print("action = ", robot.CLI_cmd)
                                 conn.send((robot.CLI_cmd.encode(FORMAT)))
                                 robot.CLI_cmd = '90'
-                            # elif (robot.CLI_cmd.split(''))=='90'
                             else:
                                 print("action = ", robot.CLI_cmd)
                                 conn.send((robot.CLI_cmd.encode(FORMAT)))
@@ -277,29 +272,29 @@ def handle_client(conn:socket, addr): #Thread function
                     # 'data': '[{"index": [[9]], "coordination": [[271.0, 367.0], [242.0, 260.0], [325.0, 235.0], [356.0, 351.0]],
                     # "orientation": 255}]'}
                     
-                    # print(type(data['data']['data']))
+                    print(type(data['data']['data']))
                     recvLocJson = json.loads(data['data']['data'])
                     #x [{'index': [[8], [9], [0]], 
                     # 'coordination': [[385.0, 468.0], [324.0, 407.0], [360.0, 334.0], [426.0, 398.0]], 'orientation': 225}, {'index': [[8], [9], [0]], 'coordination': [[385.0, 468.0], [324.0, 407.0], [360.0, 334.0], [426.0, 398.0]], 'orientation': 222}, {'index': [[8], [9], [0]], 'coordination': [[385.0, 468.0], [324.0, 407.0], [360.0, 334.0], [426.0, 398.0]],
                     # 'orientation': 225}]
-                    # print("recvLocJson",recvLocJson)
-                    # print(recvLocJson[0]['index'][0])
-                    # print(recvLocJson[0]['coordination'][0]) # Coordination of 1st robot
+                    print("recvLocJson",recvLocJson)
+                    print(recvLocJson[0]['index'][0])
+                    print(recvLocJson[0]['coordination'][0]) # Coordination of 1st robot
                     
                     listForUpdate = []
                     for i in range(len(recvLocJson)):
                         listForUpdate.append(recvLocJson[i]['index'][0])
-                    # print("captured robots'ID",listForUpdate)
+                    print("captured robots'ID",listForUpdate)
                         
                     for i in listForUpdate: #for # of detected robot
-                        # print("captured robots'ID",i)
+                        print("captured robots'ID",i)
                         for robot in Robot.robotlist:
-                            # print("Checking match ar tag")
-                            # print(robot.arindex, "==" ,i)
+                            print("Checking match ar tag")
+                            print(robot.arindex, "==" ,i)
                             if int(robot.arindex) == int(i):
-                                # print("updating loc of robot-ID: ",i)
-                                # print(recvLocJson[0]['coordination'][0])
-                                # print(recvLocJson[0]['orientation'])
+                                print("updating loc of robot-ID: ",i)
+                                print(recvLocJson[0]['coordination'][0])
+                                print(recvLocJson[0]['orientation'])
                                 robot.setloc(recvLocJson[0]['coordination'][0],recvLocJson[0]['orientation'])
                                 
                     for robot in Robot.robotlist:

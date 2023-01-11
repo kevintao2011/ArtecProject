@@ -14,6 +14,7 @@ import tkinter as tk
 import sys
 sys.path.append('./')
 import lib
+import time
 
     
 #-- Camera Init --
@@ -73,12 +74,12 @@ def send(msg):
     
 def jsonSend(sender,text): # send JSON with  cmd:host data:unify action
     #print("sent request")
-    print('Function: jsonSend')
+    # print('Function: jsonSend')
     # mymsg = json.dumps(msg("OD",text).__dict__) #_dict_ send in plaint json text
     mymsg = lib.msg("OD",text).toJSON() #edited
-    print(lib.logg(),"dumped")
+    # print(lib.logg(),"dumped")
     send(mymsg)
-    print(lib.logg(),"sent")
+    # print(lib.logg(),"sent")
 
 def vectorAngle(p1,p2):
     p1 = [p1[0]+ 1j*p1[1]]
@@ -105,7 +106,7 @@ def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
     # bbox = clock-wise position starting from top left corner
     
     print(ids)
-    print('location',bbox)
+    # print('location',bbox)
     loclist = []
     
     for i in range (len(bbox)):
@@ -113,24 +114,27 @@ def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
         id = ids.tolist()
         p1 = bbox[i][0][0].tolist()
         p2 = bbox[i][0][1].tolist()
-        print("type p1",type(p1))
-        print("type p2",type(p2))
-        print("type angle:",type(vectorAngle(p1,p2)))
+        # print("type p1",type(p1))
+        # print("type p2",type(p2))
+        # print("type angle:",type(vectorAngle(p1,p2)))
         loclist.append(locInfo(id[i],bbox[i].tolist(),vectorAngle(p1,p2)))
         
-        print("locList: ",loclist[0].__dict__)
+        # print("locList: ",loclist[0].__dict__)
     for i in loclist:
         print("i.orientation: ",i.orientation)
     fpsstring = "FPS:" + str(fps)
     if (len(bbox)>0):
         locJSON = json.dumps([ob.__dict__ for ob in loclist])
-        print("locJSON passed")
+        # print("locJSON passed")
         msgTxt = msg("OD",locJSON).__dict__
         # msgTxt = lib.msg("OD",locJSON).toJSON
         print("MSG TXT : ",msgTxt , type(msgTxt))
         
-        
+        # if ((time.time()-sendtime)>0.1):
+        #     jsonSend(lib.showtime(),msgTxt)
+        #     sendtime=time.time()
         jsonSend(lib.showtime(),msgTxt)
+        time.sleep(0.05)
         # lib.send(client,msgTxt)
     
     img = cv2.putText(img, str(len(bbox)),(50, 50),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
@@ -149,9 +153,9 @@ if __name__ == "__main__":
     except:
         pass
     # Connection Init
-            
+    sendtime = time.time()        
     while True:
-        print("Hi")
+        # print("Hi")
         if VideoCap: _,img = cap.read()
         else:
             pass

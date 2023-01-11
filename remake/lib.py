@@ -18,6 +18,12 @@ FORMAT = 'utf-8'
 HEADER = 64
 funlog=True
 
+cmdlistType ={
+"90": "c",
+"model": "Mustang",
+"year": "Ford",
+"year": "Ford",
+}
 class msg(object):
     """_summary_
     Example:
@@ -71,7 +77,10 @@ class Robot(object):
         self.location = (0,0)
         self.orientation = 0
         self.arindex = id
-        self.action = ''
+        self.action:str = ''
+        self.contAction:str = ''
+        self.handshake:bool = False
+        self.continuousActionFlag:bool = False
         # sequence -> lt , rt , rb, lb
         self.p1 = (0,0)
         self.p2 = (0,0)
@@ -87,7 +96,7 @@ class Robot(object):
         self.p4 = (locations[3][0],locations[3][1])
         self.location = ((self.p1[0]+self.p3[0])/2,(self.p1[1]+self.p3[1])/2)
         self.orientation = orientation
-        print("Loc updated")
+        # print("Loc updated")
     def displayInfo(self):
         print("**********Information**********")
         print("Ar Tag index:     ",self.arindex)
@@ -122,8 +131,21 @@ class Robot(object):
     def clearAction(self):
         self.action=''
     def updateConnection(self,s:socket):
+        self.handshake = False #make sure recv new cmd after first handshake
         self.conn= connection(s)
-        self.action=''
+    def startContAction(self,action:str):
+        print("changed to cont mode")
+        self.contAction = action
+        self.continuousActionFlag=True
+    def endContAction(self):
+        self.contAction = ''
+        self.continuousActionFlag=False
+    def getContFlag(self):
+        return self.continuousActionFlag
+    def contAction(self):
+        self.action = self.contAction
+    
+        
 
         
 class locInfo(object):
@@ -150,12 +172,12 @@ def send(socket:socket,msg):
     """    
     message = msg.encode(FORMAT) #turn into binary
     msg_length = len(message)#get msg length
-    print('msg length: ',msg_length) # number of char
+    # print('msg length: ',msg_length) # number of char
     send_length = str(msg_length).encode(FORMAT) #turn int length to bin
     send_length += b' ' * (HEADER - len(send_length)) #put space at the end space 
     socket.send(send_length)
     socket.send(message)
-    print(logg(),"sent")
+    # print(logg(),"sent")
 
     
 #get socket received , return string
@@ -197,8 +219,8 @@ def recvdata(socket:socket)->Union[msg,bool]:
         # print(fnlogg(),"read msg: ",message)
         data = json.loads(message)
         # print(fnlogg(),data)
-        print(fnlogg(),'Receiving cmd:',data['cmd'])
-        print(logg(),'Receiving data:',data['data'])
+        # print(fnlogg(),'Receiving cmd:',data['cmd'])
+        # print(logg(),'Receiving data:',data['data'])
         # print(fnlogg(),"Type",type(data))
         data = msg(data['cmd'],data['data'])
         return data
