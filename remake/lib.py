@@ -65,12 +65,13 @@ class connection():
         self.ip:str = s[1][0]
         self.port:str = s[1][1]
         self.ping:str = 999
-        print('[connection(): ]',logg(),"New Connction from",self.ip,self.port)
+        print(s)
+        print('[connection: ]',logg(),"New Connction from",self.ip,self.port)
     def update(self,ns:socket):
         self.s = ns[0]
         self.ip = ns[1][0]
         self.port = ns[1][1]
-        print('[connection(): ]',logg(),"Updated Connection with",self.ip)
+        print('[connection: ]',logg(),"Updated Connection with",self.ip)
         
 class Robot(object):
     """

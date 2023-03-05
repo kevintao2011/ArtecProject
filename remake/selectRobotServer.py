@@ -9,7 +9,7 @@ if __name__ == '__main__':
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # bind the socket to a specific address and port
-    server_socket.bind(('192.168.1.83', lib.ARTEC_PORT))
+    server_socket.bind((lib.SERVER, lib.ARTEC_PORT))
 
     # listen for incoming connections
     server_socket.listen(1)

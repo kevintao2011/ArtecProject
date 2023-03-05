@@ -169,6 +169,8 @@ def recv(socket:socket.socket):
         except:
             return msg_length
         msg = socket.recv(msg_length).decode(FORMAT)
+        msg.strip()
+        # msg.lstrip(' ')
         print('msg: ', msg)
         return msg
     else:
@@ -219,7 +221,7 @@ def updateCMD(s: socket.socket):
         # except:
         #     raise OSError
         #able when use select
-        data = recv(s)
+        data = s.readline().decode(FORMAT).strip()
         print('[update CMD]recved:',data)
         # data = recvdata(s)
         print("-Interval : " + (str((time.ticks_ms() - start)/1000)))
@@ -237,7 +239,8 @@ def executeCMD(received_action:command):
     Args:
         received_action (command): _string_
     """
-    print("Executing action: ",received_action)
+
+    print("[executeCMD]Executing action:",'*',received_action)
     if received_action == "green":
         ok_logo(display)
         received_action = ""

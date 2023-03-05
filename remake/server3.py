@@ -5,7 +5,6 @@ import time
 
 sys.path.append('./')
 import lib
-import serverThread
 from threading import Thread
 import json
 import tkinter as tk
@@ -119,51 +118,80 @@ def updateloc(c:lib.connection):
 
 #--------------------------------CLI interface--------------------------------#
 def acceptCLI():
-    #Objective: Create a socket keep looking for cli
+    """_summary_
+        Create a socket keep looking for cli in thread using function lib.updateCommand \n
+        if second cli then close old socket and open new\n
+        Global var: cliConnection
+    """
     CLIserver = socket.create_server(lib.CLI_ADDR,family=socket.AF_INET,dualstack_ipv6=False)
     atexit.register(exit_killSocket,s=CLIserver)
     CLIserver.listen()
     
-    print(lib.logg(), "CLI Server Listening at ",lib.CLI_ADDR)
+    print(lib.logg(),'[acceptCLI]', "CLI Server Listening at ",lib.CLI_ADDR)
     while(True): 
+        
         s = CLIserver.accept()
-        s = lib.connection(s)
-        lib.recv(s.s) #delet this when no handshake
+        try:
+            conn.s.close()
+            del conn
+            print('[acceptCLI]','Updated CLI socket')
+        except:
+            print('[acceptCLI]','Fisrt CLI connection')
+            
+        conn = lib.connection(s)
+        try:
+            lib.recv(conn.s) #delete this when no handshake
+            print('[acceptCLI]','recv handshake')
+        except:
+            print('[acceptCLI]','no handshake, disconnected')
+            break
         global cliConnection
-        cliConnection = s  
-        cliConnection.s.setblocking(True)
-        global cliState
-        cliState = True
-        t = Thread(target=updateCommand, args=(s,))
+        cliConnection = conn 
+        cliConnection.s.setblocking(True)        
+        t = Thread(target=updateCommand, args=(cliConnection,))
         t.start()
+        
 def acceptCLIOnce():
     #Objective: Create a socket keep looking for cli
     CLIserver = socket.create_server(lib.CLI_ADDR,family=socket.AF_INET,dualstack_ipv6=False)
     CLIserver.listen()
     
     print(lib.logg(), "CLI Server Listening at ",lib.CLI_ADDR)
-    s = CLIserver.accept()
+    (s,ipv4) = CLIserver.accept()
+    print(s,ipv4)
     s = lib.connection(s)
     lib.recv(s.s) #delet this when no handshake
     global cliConnection
     cliConnection = s  
     global cliState
     cliState = True
-    t = Thread(target=updateCommand, args=(s,))
+    t = Thread(target=updateCommand, args=(cliConnection,))
     t.start()
         
 def updateCommand(c:lib.connection):
-    alive = True
-    while(alive):
+    """_summary_\n
+    
+    Description:recv msg and update global cmd\n
+    Global var: general_cmd\n
+    Args:\n
+        c (lib.connection): _description_\n
+    """
+    global cliState
+    cliState = True
+    while(True):
         try:
             #receive cli cmd
             # tmp =lib.recvdata(cliConnection.s)
             # access the global CLI_cmd variable
             print("waiting msg...")
-            try:
-                tmp =lib.recvdata(c.s)
-            except:
-                print('CLI disconnected')
+            tmp =lib.recvdata(c.s)
+            # try:
+            #     tmp =lib.recvdata(c.s)
+            # except:
+            #     print('CLI disconnected')
+            #     break
+            
+            
             # try:
             #     print("tmp =", tmp.cmd)
             #     print("tmp =", tmp.getCMD())
@@ -176,7 +204,8 @@ def updateCommand(c:lib.connection):
         except:
             print(lib.logg(), "sth goes wrong,close connection")
             c.s.close()
-            alive = False
+            cliState = False
+            break
         try:
             if(tmp):
                 analyzeCMD(general_cmd)
@@ -184,8 +213,10 @@ def updateCommand(c:lib.connection):
             print('fail to analyze')
         
 def analyzeSpecificCMD(command:str,robot:lib.Robot):
+    
     # for robot in robotlist:
     #     if robot 
+    start = time.time()
     print(lib.logg(),"calling analyzeSpecificCMD")
     print(lib.logg(),"command",command) #command 'dir:90'
     commandA = command.split(':') #commandA ['dir', '90']
@@ -227,8 +258,11 @@ def analyzeSpecificCMD(command:str,robot:lib.Robot):
             robot.action = 'cw' 
         elif(ori>direction):
             robot.action = 'ccw'
+    end = time.time()- start
+    print('[analyzeSpecificCMD] analyzeTime;',end)
             
 def analyzeCMD(message:lib.msg):
+    
     start = time.time()
     targets = []
     command = ''
@@ -284,7 +318,7 @@ def analyzeCMD(message:lib.msg):
                 if not specific:
                     robot.action = command
                     print(lib.logg(),"updated action of",robot.arindex)
-    print('analyzed in %d second' %(time.time()-start))
+    print('[analyzeCMD]analyzed in %d second' %(time.time()-start))
     # command = cmdstr[len(cmdstr)-1]
         
     # print(lib.fnlogg(),"popped")
@@ -294,6 +328,7 @@ def analyzeCMD(message:lib.msg):
     #         if(robot.arindex==target):
     #             robot.action = command
     #             print(lib.logg(),"updated action of",robot.arindex)
+    
             
 #--------------------------------CLI interface-------------------------#
 
@@ -522,6 +557,7 @@ if __name__ == '__main__':
                 if(robot.handshake):
                     print(lib.logg(),"Sending CMD", robot.action,"to ", robot.arindex," using ip ",robot.conn.ip,robot.conn.port)
                     lib.sendline(robot.conn.s,robot.action)
+                    
 
                 
                 if(robot.getContFlag()):
