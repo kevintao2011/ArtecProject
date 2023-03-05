@@ -1,0 +1,314 @@
+# main.py
+print('-------start main script-------')
+
+
+
+# compass = StuduinoBitCompass ()
+# compassReading = compass.heading()
+# if(button_b.is_pressed):
+#     compass.calibrate()
+
+#-----------------------------IMPORTS----------------------------#
+from pystubit.image import StuduinoBitImage
+from pystubit.sensor import StuduinoBitCompass
+from pystubit.button import StuduinoBitButton
+from pystubit.dsply import StuduinoBitDisplay
+from pyatcrobo2.parts import DCMotor
+
+import time
+import _thread
+import json
+import socket
+import network
+import os
+
+import machine
+import pyatcrobo2
+import pickle
+
+#-----------------------------IMPORTS------------------------------------------#
+
+# ----------------------------CONSTANTS-----------------------#
+HEADER = 64
+PORT = 1234
+FORMAT = "utf-8"
+DISCONNECT_MESSAGE = "!DISCONNECT"
+# SERVER = "192.168.1.17"
+# SERVER = "10.22.1.126"
+# SERVER = "192.168.31.36" #Xiaomi
+# Server = "127.0.0.1"
+SERVER = "192.168.1.83"  # home wifi
+f = open('config.json')
+config = json.load(f)
+ROBOTID = config['arID'] 
+ADDR = (SERVER, PORT)
+SSID = 'NETGEAR76'
+WIFIPW = 'quiettulip014'
+#ADDR = ('192.168.1.83', 6000)
+
+# ----------------------------CONSTANTS-----------------------#
+
+#-----------------------------ARTEC HARDWARE CONFIG----------------------------#
+try:
+    L = DCMotor('M1')
+    R = DCMotor('M2')
+    L.power(0)
+    R.power(0)
+    L.stop()
+    R.stop()
+except:
+    print('motor is not installed on M1 and M2!')
+
+display = StuduinoBitDisplay()
+display.on()
+
+button_a = StuduinoBitButton('A')
+button_b = StuduinoBitButton('B')
+#-----------------------------ARTEC HARDWARE CONFIG----------------------------#
+
+
+
+#-----------------------------DEFIND CLASS------------------------------#
+class msg:
+    def __init__(self, cmd, data):
+        self.cmd = cmd
+        self.data = data
+        
+#-----------------------------DEFIND CLASS------------------------------#
+
+
+
+# -------------------------------CMD Action-------------------#
+def recvdata(socket: socket):
+    """
+    Description:
+        handle raw byte income, reuturn lib.msg object
+    Args:
+        socket (socket): _description_
+
+    Returns:
+        Union[msg,bool]: Return in format of {'cmd':str,'data',str}
+    """
+    msg_length = socket.recv(HEADER).decode(FORMAT)
+    #print("read msg_length: ",msg_length)
+
+    if msg_length:
+        message = socket.recv(int(msg_length)).decode(FORMAT)
+        #data = json.loads(message)
+        print('message',message)
+        return message
+    else:
+        #print("Fail to recv data")
+        return False
+
+
+def updateCMD(s: socket.socket):
+    global command
+    command = ''
+    print("Started thread")
+    
+    while True:
+        # start = time.ticks_ms()
+        # print("waitng msg...")
+        data = recvdata(s)
+        # print("-Inerval from last CMD: " + (str((time.ticks_ms() - start)/1000)))
+        if data:
+            command = data
+        else:
+            command = ''
+        # return data
+        
+
+
+def executeCMD(received_action:command):
+    print("Executing action: ",received_action)
+    if received_action == "green":
+        ok_logo(display)
+        received_action = ""
+
+    elif received_action == "red":
+        print("Execute red")
+        redCross_logo(display)
+        received_action = ""
+  
+    # elif received_action == "fw":
+    #     dcmotor.rotate(m2="ccw")
+    #     dcmotor.set_power(m1=50)
+    #     dcmotor.rotate(m1="ccw")
+    #     dcmotor.set_power(m2=50)
+    # elif received_action == "bk":
+    #     dcmotor.rotate(m2="cw")
+    #     dcmotor.set_power(m1=50)
+    #     dcmotor.rotate(m1="cw")
+    #     dcmotor.set_power(m2=50)
+    elif received_action == "cw":
+        L.power(30)
+        R.power(30)
+        L.cw()
+        R.ccw()
+        # dcmotor.rotate(m2="cw")
+        # dcmotor.set_power(m1=30)
+        # dcmotor.rotate(m1="ccw")
+        # dcmotor.set_power(m2=30)
+    elif received_action == "ccw":
+        L.power(30)
+        R.power(30)
+        L.ccw()
+        R.cw()
+        # dcmotor.rotate(m2="ccw")
+        # dcmotor.set_power(m1=30)
+        # dcmotor.rotate(m1="cw")
+        # dcmotor.set_power(m2=30)
+    elif received_action == "stop":
+        L.power(0)
+        R.power(0)
+        L.stop()
+        R.stop()
+    else:
+        print("No registered command matched")
+
+# -------------------------------CMD Action-------------------#
+
+# ------------------------WIFI & SERVER connection-------------------#
+
+def do_connect():
+    
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    if not wlan.isconnected():
+        print('connecting to network...')
+        wlan.connect(SSID, WIFIPW)
+        # wlan.connect('Kevin(2)', '12345678')
+        while not wlan.isconnected():
+            pass
+    print('network config:', wlan.ifconfig())
+    
+def connectServer()->socket.socket:
+    ADDR = (SERVER, PORT) 
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    connected = False
+    while (not connected):
+        try:
+            print('try connect to server')
+            client.connect(ADDR)
+            print('connected to server')
+            send(ROBOTID,client)
+            connected = True
+            print('sent handshake to server')
+            print(client)
+        except:
+            print('Retrying connnect to server ......')
+    return client
+    
+def recvdata(socket: socket.socket):
+    """
+    Description:
+        handle raw byte income, reuturn lib.msg object
+    Args:
+        socket (socket): _description_
+
+    Returns:
+        Union[msg,bool]: Return in format of {'cmd':str,'data',str}
+    """
+    
+    msg_length = socket.recv(HEADER).decode(FORMAT)
+    #print("read msg_length: ",msg_length)
+    recvTime = time.ticks_ms()
+            
+    if msg_length:
+        message = socket.recv(int(msg_length)).decode(FORMAT)
+        #data = json.loads(message)
+        print('message',message)
+        recvTime = (time.ticks_ms() -recvTime)/1000
+        print("-Received in-- "+ (str(recvTime)))
+        
+        return message
+        #try:
+            # print(fnlogg(),"read msg: ",message)
+
+            # print(fnlogg(),data)
+            # print(fnlogg(),'Receiving cmd:',data['cmd'])
+            # print(logg(),'Receiving data:',data['data'])
+            # print(fnlogg(),"Type",type(data))
+            #data = msg(data["cmd"], data["data"])
+        #    return message
+        #except:
+            #print("Fail to recv data")
+            #return False
+    else:
+        #print("Fail to recv data")
+        # print("-Received in-- "+ (str((time.ticks_ms() -recvTime)/1000)))
+        return False
+    
+
+def send(msg,socket:socket):
+    message = msg.encode(FORMAT)
+    msg_length = len(message)
+    
+    send_length = str(msg_length).encode(FORMAT)
+    send_length += b" " * (HEADER - len(send_length))
+
+    socket.send(send_length)
+    socket.send(message)
+
+
+# ------------------------WIFI & SERVER connection-------------------#
+    
+
+
+#-------------------------IMG logo--------------------------------#
+def ok_logo(display:StuduinoBitDisplay):
+    _thread.start_new_thread(green, [display])
+    
+
+def green(display:StuduinoBitDisplay):
+    # _thread.start_new_thread(updateCMD, [connectServer()])
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((0,10,0))
+    display.show(img)
+    
+
+def redCross_logo(display:StuduinoBitDisplay):
+    _thread.start_new_thread(red, [display])
+    
+def red(display:StuduinoBitDisplay):
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((10,10,10))
+    display.show(img)
+    
+#-------------------------IMG logo--------------------------------#
+#------------------------THREAD-------------------------#
+
+    
+# -----------------------main------------------------
+
+if __name__ == '__main__':
+    #connect to WIFI 
+    do_connect()
+    _thread.start_new_thread(updateCMD, [connectServer()])
+
+    while True:
+        # try:
+        #     command = updateCMD(s)
+        #     executeCMD(command)
+        # except:
+        #     pass
+        # command = updateCMD(s)
+        RepeatTime = time.ticks_ms()
+        
+        try:
+            # print("command:",command)
+            if command :
+                exeTime = time.ticks_ms()
+                executeCMD(command)
+                # print("-Executeded in-- " +(str((time.ticks_ms() -exeTime)/1000)))
+                command=''
+        except:
+            # pass
+            print('fail to execute (main thread)')
+        # print("-Reapeated in-- " +(str((time.ticks_ms()-RepeatTime)/1000)))
+
+
+
+
+    

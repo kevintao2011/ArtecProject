@@ -1,6 +1,8 @@
 # lib for camera dfetection
 from symbol import parameters
-import cv2
+
+
+import cv2 as cv2
 import cv2.aruco as aruco
 import numpy as np
 # lib for camera dfetection
@@ -10,7 +12,6 @@ import socket
 import json
 # Init for Connection
 
-import tkinter as tk
 import sys
 sys.path.append('./')
 import lib
@@ -19,11 +20,9 @@ import time
     
 #-- Camera Init --
 VideoCap = True
-cap=cv2.VideoCapture(1, 700)
-# cap.set(cv.CAP_PROP_FRAME_WIDTH,854)
-# cap.set(cv.CAP_PROP_FRAME_HEIGHT,480)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH,1000)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT,700)
+cap=cv2.VideoCapture(0, 700)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT,720)
 
 fps = int(cap.get(5))
 # _, frame = cap.read()
@@ -32,10 +31,7 @@ fps = int(cap.get(5))
 
 # Connection variable
 HEADER = 64
-# SERVER = "10.22.1.126"
 SERVER = lib.SERVER
-# SERVER = "172.20.10.12"
-# SERVER = "192.168.31.36" #Xiaomi
 PORT = lib.CAM_PORT
 ADDR = lib.CAM_ADDR
 FORMAT = 'utf-8'
@@ -63,6 +59,12 @@ class locInfo:
 
 #Functions
 def send(msg):
+    """_summary_
+    send function in camera.py, send msg length & camdata 
+    Args:
+        msg (_type_): _description_
+    """
+    print('[SEND]msg = ',msg)
     message = msg.encode(FORMAT)
     msg_length = len(message)
     send_length = str(msg_length).encode(FORMAT)
@@ -81,7 +83,7 @@ def jsonSend(sender,text): # send JSON with  cmd:host data:unify action
     send(mymsg)
     # print(lib.logg(),"sent")
 
-def vectorAngle(p1,p2):
+def vectorAngle(p1,p2): #ee 2104
     p1 = [p1[0]+ 1j*p1[1]]
     p2 = [p2[0]+ 1j*p2[1]]
     vector1 = np.array(p1)
@@ -134,7 +136,7 @@ def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
         #     jsonSend(lib.showtime(),msgTxt)
         #     sendtime=time.time()
         jsonSend(lib.showtime(),msgTxt)
-        time.sleep(0.05)
+        # time.sleep(0.05)
         # lib.send(client,msgTxt)
     
     img = cv2.putText(img, str(len(bbox)),(50, 50),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
@@ -145,13 +147,12 @@ def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
  
 if __name__ == "__main__":    
     # Connection Init
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(ADDR)
-        print("connected")
-        send("From Object detection")
-    except:
-        pass
+ 
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(ADDR)
+    print("connected")
+    send("From Object detection")
+    
     # Connection Init
     sendtime = time.time()        
     while True:

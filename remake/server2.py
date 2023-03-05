@@ -9,7 +9,7 @@ import serverThread
 from threading import Thread
 import json
 import tkinter as tk
-
+import selectRobotServer
 
 
 
@@ -68,7 +68,7 @@ def updateloc(c:lib.connection):
             handshakeID = lib.recv(camConnection.s)
             camhandshake = True
         except:
-            print(lib.logg(),"Cam cannot receive handshake") 
+            print(lib.logg(),"Cam Disconnected") 
     print(lib.logg(), "Camera is Connected on port ",camConnection.port)
     
        
@@ -85,7 +85,11 @@ def updateloc(c:lib.connection):
         #     pass
         #     # print("No data")
         #     camdata = None
-        camdata = lib.recvdata(camConnection.s)
+        try:
+            camdata = lib.recvdata(camConnection.s)
+        except:
+            print("CAM disconnected")
+            
         try:# put list of robot to be update into list and execute updates
             recvLocJson = json.loads(camdata.data['data'])
             # print(lib.fnlogg(),"Parsed cam data")
@@ -150,7 +154,10 @@ def updateCommand(c:lib.connection):
             # tmp =lib.recvdata(cliConnection.s)
             # access the global CLI_cmd variable
             print("waiting msg...")
-            tmp =lib.recvdata(c.s)
+            try:
+                tmp =lib.recvdata(c.s)
+            except:
+                print('CLI disconnected')
             # try:
             #     print("tmp =", tmp.cmd)
             #     print("tmp =", tmp.getCMD())
@@ -281,9 +288,6 @@ def analyzeCMD(message:lib.msg):
     #         if(robot.arindex==target):
     #             robot.action = command
     #             print(lib.logg(),"updated action of",robot.arindex)
-
-    
-    
             
 #--------------------------------CLI interface-------------------------#
 
@@ -300,6 +304,7 @@ def acceptRobot():
         # ROBOTserver.setblocking(False)
         
         s = ROBOTserver.accept()
+        
         ID = lib.recv(s[0]) # handshake
         print("RobotList",len(robotlist))
         for robot in robotlist:
@@ -319,9 +324,6 @@ def acceptRobot():
             print(lib.logg(),'New Artec is Registered')
 #--------------------------------Robt Interface------------------------#
         
-
-    
-    
 def GUI():
     def set_label():
         currentTime = lib.datetime.now()
@@ -400,6 +402,8 @@ def GUI():
     label_remark.grid(column=6,row=1)
     label_port = tk.Label(window, text="Port")
     label_port.grid(column=7,row=1)
+    label_port = tk.Label(window, text="Latency")
+    label_port.grid(column=8,row=1)
     
     
     
@@ -411,6 +415,7 @@ def GUI():
     locList = []
     remarkList = []
     portList = []
+    latencyList = []
     for i in range (10):
         ID = tk.Label(window, text=str(i))
         Ori = tk.Label(window, text="not connected")
@@ -420,6 +425,7 @@ def GUI():
         loc = tk.Label(window, text="not connected")
         remark = tk.Label(window, text="not connected")
         port = tk.Label(window, text="not connected")
+        latency = tk.Label(window, text="not connected")
         ID.grid(column=0,row=i+3)
         Ori.grid(column=1,row=i+3)
         act.grid(column=2,row=i+3)
@@ -428,6 +434,7 @@ def GUI():
         loc.grid(column=5,row=i+3)
         remark.grid(column=6,row=i+3)
         port.grid(column=7,row=i+3)
+        latency.grid(column=8,row=i+3)
         idList.append(ID)
         oriList.append(Ori)
         actionList.append(act)
@@ -436,15 +443,13 @@ def GUI():
         locList.append(loc)
         remarkList.append(remark)
         portList.append(port)
+        latencyList.append(port)
         
 
     # label.pack()
     dataupdate()
     set_label()
     window.mainloop() #must
-
-
-
 
 def issueCMD():
     while(True):
@@ -467,59 +472,61 @@ def issueCMD():
                     robot.clearAction()
                 print(lib.logg(),"Sent CMD to ", robot.arindex)
 # --------------------------------Program starts------------------------------------#
-# def __main__() :
-print("Sever Program")
-global cliState
-# global cliConnection
-cliState = False
-global general_cmd
-global robotlist
-l:list[lib.Robot]=[]
-robotlist=l
-t = Thread(target=GUI)
-t.start()
-t = Thread(target=acceptRobot)
-t.start()
+if __name__ == '__main__':
+   
+    print("Sever Program")
+    global cliState
+    # global cliConnection
+    cliState = False
+    global general_cmd
+    global robotlist
+    l:list[lib.Robot]=[]
+    robotlist=l
+    t = Thread(target=GUI)
+    t.start()
+    t = Thread(target=acceptRobot)
+    t.start()
 
 
 
-# acceptCamOnce()
-# acceptCLIOnce()
+    # acceptCamOnce()
+    # acceptCLIOnce()
 
 
-lock = threading.Lock()
+    lock = threading.Lock()
 
 
-# t = Thread(target=issueCMD)
-# t.start()
+    # t = Thread(target=issueCMD)
+    # t.start()
 
-t = Thread(target=acceptCam)
-t.start()  
-t = Thread(target=acceptCLI)
-t.start()
+    t = Thread(target=acceptCam)
+    t.start()  
+    t = Thread(target=acceptCLI)
+    t.start()
 
-# while(True):
-#     # for robot in robotlist:
-#     #     try:
-#     #         lib.send(robot.conn.s,robot.action)
-#     #     except:
-#     #         print("couldn't send msg")
-while(True):
-    time.sleep(0.1)
-    for robot in robotlist:
-        # print(robot.arindex,robot.action)
-        if((robot.action!='')):
+    # while(True):
+    #     # for robot in robotlist:
+    #     #     try:
+    #     #         lib.send(robot.conn.s,robot.action)
+    #     #     except:
+    #     #         print("couldn't send msg")
+    while(True):
+        time.sleep(0.1)
+        for robot in robotlist:
+            # print(robot.arindex,robot.action)
+            if((robot.action!='')):
+                
+                if(robot.handshake):
+                    print(lib.logg(),"Sending CMD", robot.action,"to ", robot.arindex," using ip ",robot.conn.ip,robot.conn.port)
+                    lib.send(robot.conn.s,robot.action)
+
+                
+                if(robot.getContFlag()):
+                    print(lib.logg(),"doing cont function")
+                    robot.action=robot.contAction
+                    print(lib.logg(),"Robot.action:",robot.action,robot.orientation)
+                    analyzeSpecificCMD(robot.action,robot)
+                else:
+                    robot.clearAction()
+                print(lib.logg(),"Sent CMD to ", robot.arindex)
             
-            if(robot.handshake):
-                print(lib.logg(),"Sending CMD", robot.action,"to ", robot.arindex," using ip ",robot.conn.ip,robot.conn.port)
-                lib.send(robot.conn.s,robot.action)
-
-            
-            if(robot.getContFlag()):
-                print(lib.logg(),"doing cont function")
-                robot.action=robot.contAction
-                print(lib.logg(),"Robot.action:",robot.action,robot.orientation)
-                analyzeSpecificCMD(robot.action,robot)
-            else:
-                robot.clearAction()
-            print(lib.logg(),"Sent CMD to ", robot.arindex)

@@ -1,0 +1,4 @@
+delay in chip:
+1. some internal delay in lib (setimage)
+
+1 to 1 max delay: 200ms

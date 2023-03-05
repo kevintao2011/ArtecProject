@@ -3,12 +3,16 @@ import threading
 import json
 import socket
 from typing import Union
+import numpy as np
 # SERVER = "127.0.0.1"
 SERVER = "192.168.1.83" #home wifi
+# SERVER = "172.20.10.3" #iphone
+# SERVER = "192.168.31.36" #XiaoMi
 PORT = 5050
-ARTEC_PORT = 6000
-CLI_PORT = 7000
-CAM_PORT = 8000
+ARTEC_PORT = 1000
+# CLI_PORT = 7000
+CLI_PORT = 2000
+CAM_PORT = 3000
 ADDR = (SERVER,PORT)
 CLI_ADDR = (SERVER,CLI_PORT)
 CAM_ADDR = (SERVER,CAM_PORT)
@@ -18,11 +22,12 @@ FORMAT = 'utf-8'
 HEADER = 64
 funlog=True
 
-cmdlistType ={
-"90": "c",
-"model": "Mustang",
-"year": "Ford",
-"year": "Ford",
+# key - cmd str , value , #args after : , args seperated by '-'
+# Avoid key is substring of other key
+cmdlist ={
+"dir": 1,
+"move to": 2,
+
 }
 class msg(object):
     """_summary_
@@ -59,12 +64,13 @@ class connection():
         self.s:socket=s[0]
         self.ip:str = s[1][0]
         self.port:str = s[1][1]
-        print(logg(),"New Connction from",self.ip,self.port)
+        self.ping:str = 999
+        print('[connection(): ]',logg(),"New Connction from",self.ip,self.port)
     def update(self,ns:socket):
         self.s = ns[0]
         self.ip = ns[1][0]
         self.port = ns[1][1]
-        print(logg(),"Updated Connection with",self.ip)
+        print('[connection(): ]',logg(),"Updated Connection with",self.ip)
         
 class Robot(object):
     """
@@ -79,6 +85,7 @@ class Robot(object):
         self.arindex = id
         self.action:str = ''
         self.contAction:str = ''
+        self.remark:str = ''
         self.handshake:bool = False
         self.continuousActionFlag:bool = False
         # sequence -> lt , rt , rb, lb
@@ -87,7 +94,7 @@ class Robot(object):
         self.p3 = (0,0)
         self.p4 = (0,0)
         self.CLI_cmd = "Keep Standby"
-        print("Added new Robot")
+        print('[ROBOT: ]',"Added new Robot")
     def setloc(self,locations,orientation): 
     #self = robotobj , locations = list of list , orientation = number
         self.p1 = (locations[0][0],locations[0][1])
@@ -98,14 +105,14 @@ class Robot(object):
         self.orientation = orientation
         # print("Loc updated")
     def displayInfo(self):
-        print("**********Information**********")
-        print("Ar Tag index:     ",self.arindex)
-        print("IP address:       ",self.conn.ip,self.conn.port)
-        print("Action:           ",self.action)
-        print("location:         ",self.location)
-        print("orientation:      ",self.orientation)
+        print('[ROBOT: ]',"**********Information**********")
+        print('[ROBOT: ]',"Ar Tag index:     ",self.arindex)
+        print('[ROBOT: ]',"IP address:       ",self.conn.ip,self.conn.port)
+        print('[ROBOT: ]',"Action:           ",self.action)
+        print('[ROBOT: ]',"location:         ",self.location)
+        print('[ROBOT: ]',"orientation:      ",self.orientation)
         
-        print("**********Information**********")
+        print('[ROBOT: ]',"**********Information**********")
         
     # def analyzeCMD(self,message:msg):
         
@@ -159,12 +166,12 @@ class locInfo(object):
         self.p4 = (0,0)
         
 
-         
+#------------------SEND FUNCTION--------------#         
 
 #pass in a socket and msg(not byte)
-def send(socket:socket,msg):
+def send(socket:socket.socket,msg):
     """
-    Description:Send twice, first is str second is msg object in JSON text
+    Description:Send twice, first is msglength(str) second is msg object in JSON text
     
     Args:
         socket (socket): _description_
@@ -175,32 +182,179 @@ def send(socket:socket,msg):
     # print('msg length: ',msg_length) # number of char
     send_length = str(msg_length).encode(FORMAT) #turn int length to bin
     send_length += b' ' * (HEADER - len(send_length)) #put space at the end space 
-    socket.send(send_length)
-    socket.send(message)
+    try:
+        socket.send(send_length)
+        socket.send(message)
+    except socket.error as error:
+        print('[send]',error)
+    # print(logg(),"sent")
+    
+def sendline(socket:socket.socket,msg):
+    """
+    Description:Send a string with eol char (for handling robot communication)
+    
+    Args:
+        socket (socket): _description_
+        msg (_type_): _description_
+    """    
+    msg=msg+"\n"
+    message = msg.encode(FORMAT) #turn into binary
+    
+    try:
+        socket.send(message)
+    except socket.error as error:
+        print(error)
     # print(logg(),"sent")
 
+def jsonSend(socket,text): # send JSON with  cmd:host data:unify action
+    #print("sent request")
+    print()
+    print('[Jsonsend]','Execting function: jsonSend.........')
+    print('[Jsonsend]','Dumping into JSON text.........')
+    mymsg = json.dumps(msg("Host",text).__dict__) #_dict_ send in plaint json text
+    print('[Jsonsend]','Sending JSON text.........')
+    send(socket,mymsg)
     
+def isJson(msg):
+    if(json.detect_encoding(msg)):
+        data = json.loads(msg)
+        return data
+    else:
+        return msg
+    
+#------------------SEND FUNCTION--------------#  
+
+#------------------RECV FUNCTION--------------#  
 #get socket received , return string
-def recv(socket:socket):
+
+def nonblkingRecv(s:socket):
+    try:
+        data = s.recv(HEADER).decode(FORMAT)
+        
+    except:
+        print('OS error')
+    return data
+
+            
+def recv(socket:socket.socket):
     """_summary_
     Description:
-        handle raw byte income
+        Read msg length and msg,handle raw byte income,return UTF-8 string or False (if failed -> should disconnect), with specified msg legth, overread can be eliminated
     Args:
         socket (socket): _description_
 
     Returns:
         _type_: Return in string
     """    
-    
+    # socket.settimeout(0.5)
+    print('[lib.recv] timeout ',socket.gettimeout())
+    print('[lib.recv] blocking ',socket.getblocking())
     msg_length = socket.recv(HEADER).decode(FORMAT) 
+    
     if msg_length:
-        print()
-        msg_length = int(msg_length)
-        msg = socket.recv(msg_length).decode(FORMAT)
+        
+        print(socket.getpeername(),'[lib.recv]message length:', msg_length)
+        try:
+            msg_length = int(msg_length)
+        except:
+            print('[lib.recv]no msg length got')
+            return msg_length
+        try:
+            print('[lib.recv]waiting msg')
+            msg = socket.recv(msg_length).decode(FORMAT)
+            print('[lib.recv]msg: ', msg)
+        except:
+            print('[lib.recv]no msg got')
+            raise OSError
         return msg
     else:
+        raise OSError
+def recvBytes(socket:socket.socket):
+    """_summary_
+    Description:
+        Read msg length and msg,handle raw byte income,return UTF-8 string or False (if failed -> should disconnect), with specified msg legth, overread can be eliminated
+    Args:
+        socket (socket): _description_
+
+    Returns:
+        _type_: Return in string
+    """    
+    socket.settimeout(0.5)
+    print('[lib.recv] timeout ',socket.gettimeout())
+    print('[lib.recv] blocking ',socket.getblocking())
+    msg_length = socket.recv(HEADER).decode(FORMAT) 
+    
+    if msg_length:
+        
+        print(socket.getpeername(),'[lib.recv]message length:', msg_length)
+        try:
+            msg_length = int(msg_length)
+        except:
+            print('[lib.recvBytes]no msg length got')
+            return msg_length
+        try:
+            print('[lib.recvBytes]waiting msg')
+            msg = socket.recv(msg_length).decode(FORMAT)
+            print('[lib.recvBytes]msg: ', msg)
+        except:
+            print('[lib.recvBytes]no msg got')
+            raise OSError
+        return msg
+    else:
+        raise OSError
+def recvCAM(socket:socket.socket):
+    """_summary_
+    Description:
+        Read msg length and msg,handle raw byte income,return UTF-8 string or False (if failed -> should disconnect), with specified msg legth, overread can be eliminated
+    Args:
+        socket (socket): _description_
+
+    Returns:
+        _type_: Return in string
+    """    
+    # socket.settimeout(0.5)
+    print('[lib.recvCAM] timeout ',socket.gettimeout())
+    print('[lib.recvCAM] blocking ',socket.getblocking())
+    msg_length = socket.recv(HEADER).decode(FORMAT) 
+    
+    if msg_length:
+        
+        print(socket.getpeername(),'[lib.recvCAM]message length:', msg_length)
+        try:
+            msg_length = int(msg_length)
+        except:
+            print('[lib.recvCAM]no msg length got')
+            return msg_length
+        try:
+            print('[lib.recvCAM]waiting msg')
+            msg = socket.recv(msg_length).decode(FORMAT)
+            print('[lib.recvCAM]msg: ', msg)
+        except:
+            print('[lib.recvCAM]no msg got')
+            raise OSError
+        return msg
+    else:
+        raise OSError
+def recvThenAck(s:socket.socket):
+    """_summary_
+    Description:
+        Recv a string and return b'ACK'
+    Args:
+        socket (socket): _description_
+
+    Returns:
+        _type_: Return in string
+    """    
+    try: 
+        print('waiting return ACK')
+        data =  s.recv(1024).decode(FORMAT) 
+        # print('Send ACK')
+        s.send(b'ACK')
+        return data
+    except:
+        print('couldnt decode msg')
         return False
-  
+    
 
 def recvdata(socket:socket)->Union[msg,bool]:
     """
@@ -212,10 +366,10 @@ def recvdata(socket:socket)->Union[msg,bool]:
     Returns:
         Union[msg,bool]: Return in format of {'cmd':str,'data',str}
     """    
-    msg_length = int(socket.recv(HEADER).decode(FORMAT))
+    msg_length = socket.recv(HEADER).decode(FORMAT)
     # print(fnlogg(),"read msg_length: ",msg_length)
     if msg_length:
-        message = socket.recv(msg_length).decode(FORMAT)
+        message = socket.recv(int(msg_length)).decode(FORMAT)
         # print(fnlogg(),"read msg: ",message)
         data = json.loads(message)
         # print(fnlogg(),data)
@@ -227,22 +381,8 @@ def recvdata(socket:socket)->Union[msg,bool]:
     else:
         return False
     
-        
-def jsonSend(socket,text): # send JSON with  cmd:host data:unify action
-    #print("sent request")
-    print()
-    print('Execting function: jsonSend.........')
-    print('Dumping into JSON text.........')
-    mymsg = json.dumps(msg("Host",text).__dict__) #_dict_ send in plaint json text
-    print('Sending JSON text.........')
-    send(socket,mymsg)
-    
-def isJson(msg):
-    if(json.detect_encoding(msg)):
-        data = json.loads(msg)
-        return data
-    else:
-        return msg
+#------------------RECV FUNCTION--------------#        
+
         
 
 def showtime():
@@ -262,3 +402,36 @@ def fnlogg():
         s = "function log: "
         return s
 
+# def vectorAngle(p1,p2): #ee 2104
+#     p1 = [p1[0]- 1j*(p1[1])]
+#     p2 = [p2[0]- 1j*(p2[1])]
+#     vector1 = np.array(p1)
+#     vector2 = np.array(p2)
+#     r = -vector1 - vector2 #from p1 to p2
+#     if (int(np.angle(r,True))<0):
+#         return 360+int(np.angle(r,True))
+#     else:
+#         return int(np.angle(r,True))
+
+def vectorAngle(p1,p2): #ee 2104
+    # print('p1[0]',p1[0])
+    # print('p1[1]',p1[1])
+    # print('p2[0]',p2[0])
+    # print('p2[1]',p2[1])
+    p1 = [p1[0]+ 1j*p1[1]]
+    p2 = [p2[0]+ 1j*p2[1]]
+    vector1 = np.array(p1)
+    vector2 = np.array(p2)
+    # r = -vector1 + vector2 #from p1 to p2
+    r =  -vector1+vector2 
+    # r = np.conjugate(r)
+    print(r[0])
+    #np angle return The counterclockwise angle from the positive real axis on the complex plane 
+    # return int(np.angle(r,True))
+    if (int(np.angle(r,True))<0):
+        return (450+int(np.angle(r,True)))%360
+    else:
+        return (90+int(np.angle(r,True)))%360
+    
+# def handleRobot():
+    
