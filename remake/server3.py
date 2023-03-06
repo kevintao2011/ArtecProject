@@ -539,8 +539,8 @@ if __name__ == '__main__':
     global robotlist
     l:list[lib.Robot]=[]
     robotlist=l
-    t = Thread(target=GUI)
-    t.start()
+    # t = Thread(target=GUI)
+    # t.start()
     t = Thread(target=acceptRobot)
     t.start()
     # camProcess = mp.Process(target=acceptCam)

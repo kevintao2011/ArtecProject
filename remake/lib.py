@@ -14,6 +14,7 @@ ARTEC_PORT = 1000
 # CLI_PORT = 7000
 CLI_PORT = 2000
 CAM_PORT = 3000
+GUI_PORT = 4000
 ADDR = (SERVER,PORT)
 CLI_ADDR = (SERVER,CLI_PORT)
 CAM_ADDR = (SERVER,CAM_PORT)
@@ -272,6 +273,39 @@ def recv(socket:socket.socket):
     else:
         raise OSError
 def recvBytes(socket:socket.socket):
+    """_summary_
+    Description:
+        Read msg length and msg,handle raw byte income,return UTF-8 string or False (if failed -> should disconnect), with specified msg legth, overread can be eliminated
+    Args:
+        socket (socket): _description_
+
+    Returns:
+        _type_: Return in string
+    """    
+    socket.settimeout(0.5)
+    print('[lib.recv] timeout ',socket.gettimeout())
+    print('[lib.recv] blocking ',socket.getblocking())
+    msg_length = socket.recv(HEADER).decode(FORMAT) 
+    
+    if msg_length:
+        
+        print(socket.getpeername(),'[lib.recv]message length:', msg_length)
+        try:
+            msg_length = int(msg_length)
+        except:
+            print('[lib.recvBytes]no msg length got')
+            return msg_length
+        try:
+            print('[lib.recvBytes]waiting msg')
+            msg = socket.recv(msg_length).decode(FORMAT)
+            print('[lib.recvBytes]msg: ', msg)
+        except:
+            print('[lib.recvBytes]no msg got')
+            raise OSError
+        return msg
+    else:
+        raise OSError
+def recvForGUI(socket:socket.socket):
     """_summary_
     Description:
         Read msg length and msg,handle raw byte income,return UTF-8 string or False (if failed -> should disconnect), with specified msg legth, overread can be eliminated
