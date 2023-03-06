@@ -36,7 +36,6 @@ def acceptCam():
         s = CAMserver.accept()
         
         s = lib.connection(s)
-        
         t = Thread(target=updateloc, args=(s,))
         t.start()
 
@@ -100,7 +99,7 @@ def updateloc(c:lib.connection):
         except:
             print(lib.logg(),"No robot exits yet")
             pass
-        print(lib.fnlogg(),"[updateloc] ","Parsed cam data")
+        # print(lib.fnlogg(),"[updateloc] ","Parsed cam data")
         # print(recvLocJson)
         for i in range(len(recvLocJson)): 
             listForUpdate.append(recvLocJson[i]['index'][0])
@@ -117,6 +116,23 @@ def updateloc(c:lib.connection):
 
 
 #--------------------------------CLI interface--------------------------------#
+def acceptCLIOnce():
+    #Objective: Create a socket keep looking for cli
+    CLIserver = socket.create_server(lib.CLI_ADDR,family=socket.AF_INET,dualstack_ipv6=False)
+    CLIserver.listen()
+    
+    print(lib.logg(), "CLI Server Listening at ",lib.CLI_ADDR)
+    (s,ipv4) = CLIserver.accept()
+    print(s,ipv4)
+    s = lib.connection(s)
+    lib.recv(s.s) #delet this when no handshake
+    global cliConnection
+    cliConnection = s  
+    global cliState
+    cliState = True
+    t = Thread(target=updateCommand, args=(cliConnection,))
+    t.start()
+    
 def acceptCLI():
     """_summary_
         Create a socket keep looking for cli in thread using function lib.updateCommand \n
@@ -125,9 +141,13 @@ def acceptCLI():
     """
     CLIserver = socket.create_server(lib.CLI_ADDR,family=socket.AF_INET,dualstack_ipv6=False)
     atexit.register(exit_killSocket,s=CLIserver)
+    CLIserver.bind
     CLIserver.listen()
     
     print(lib.logg(),'[acceptCLI]', "CLI Server Listening at ",lib.CLI_ADDR)
+    
+    global cliState
+    cliState = False
     while(True): 
         
         s = CLIserver.accept()
@@ -146,27 +166,14 @@ def acceptCLI():
             print('[acceptCLI]','no handshake, disconnected')
             break
         global cliConnection
-        cliConnection = conn 
-        cliConnection.s.setblocking(True)        
-        t = Thread(target=updateCommand, args=(cliConnection,))
-        t.start()
         
-def acceptCLIOnce():
-    #Objective: Create a socket keep looking for cli
-    CLIserver = socket.create_server(lib.CLI_ADDR,family=socket.AF_INET,dualstack_ipv6=False)
-    CLIserver.listen()
-    
-    print(lib.logg(), "CLI Server Listening at ",lib.CLI_ADDR)
-    (s,ipv4) = CLIserver.accept()
-    print(s,ipv4)
-    s = lib.connection(s)
-    lib.recv(s.s) #delet this when no handshake
-    global cliConnection
-    cliConnection = s  
-    global cliState
-    cliState = True
-    t = Thread(target=updateCommand, args=(cliConnection,))
-    t.start()
+        cliConnection = conn 
+        cliConnection.s.setblocking(True) 
+        if cliState == False:      
+            t = Thread(target=updateCommand, args=(cliConnection,))
+            t.start()
+        
+
         
 def updateCommand(c:lib.connection):
     """_summary_\n
@@ -176,10 +183,11 @@ def updateCommand(c:lib.connection):
     Args:\n
         c (lib.connection): _description_\n
     """
-    global cliState
+    
     cliState = True
     while(True):
         try:
+            cliState = True
             #receive cli cmd
             # tmp =lib.recvdata(cliConnection.s)
             # access the global CLI_cmd variable
@@ -199,10 +207,10 @@ def updateCommand(c:lib.connection):
             #     pass
             global general_cmd
             general_cmd = tmp
-            print(lib.logg(), "New Command: ", general_cmd.getCMD(),general_cmd.getData())
+            print(lib.logg(), "updateCommand New Command: ", general_cmd.getCMD(),general_cmd.getData())
             
         except:
-            print(lib.logg(), "sth goes wrong,close connection")
+            print(lib.logg(), "[updateCommand] sth goes wrong,close connection")
             c.s.close()
             cliState = False
             break
@@ -568,4 +576,4 @@ if __name__ == '__main__':
                 else:
                     robot.clearAction()
                 print(lib.logg(),"Sent CMD to ", robot.arindex)
-        print('[main]cycle time: ',time.time()-start)
+        # print('[main]cycle time: ',time.time()-start)
