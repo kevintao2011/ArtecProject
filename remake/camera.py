@@ -20,9 +20,9 @@ import time
     
 #-- Camera Init --
 VideoCap = True
-cap=cv2.VideoCapture(0, 700)
+cap=cv2.VideoCapture(1, cv2.CAP_ANY)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH,1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT,720)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT,800)
 
 fps = int(cap.get(5))
 # _, frame = cap.read()
@@ -99,7 +99,7 @@ def convertJson(text):
     mymsg = json.dumps(msg("Host",text).__dict__) #_dict_ send in plaint json text
     return mymsg
 
-def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
+def findAruco(img,connected:bool,marker_size=4 , total_markers = 250,draw = True ):
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     key=getattr(aruco,f'DICT_{marker_size}X{marker_size}_{total_markers}')
     arucoDict = aruco.Dictionary_get(key)
@@ -111,57 +111,79 @@ def findAruco(img,marker_size=4 , total_markers = 250,draw = True):
     # print('location',bbox)
     loclist = []
     
-    for i in range (len(bbox)):
-        
-        id = ids.tolist()
-        p1 = bbox[i][0][0].tolist()
-        p2 = bbox[i][0][1].tolist()
-        # print("type p1",type(p1))
-        # print("type p2",type(p2))
-        # print("type angle:",type(vectorAngle(p1,p2)))
-        loclist.append(locInfo(id[i],bbox[i].tolist(),vectorAngle(p1,p2)))
-        
-        # print("locList: ",loclist[0].__dict__)
-    for i in loclist:
-        print("i.orientation: ",i.orientation)
+    #conncetion to server required
+    if(connected):
+        try:
+            for i in range (len(bbox)):
+                
+                id = ids.tolist()
+                p1 = bbox[i][0][0].tolist()
+                p2 = bbox[i][0][1].tolist()
+                # print("type p1",type(p1))
+                # print("type p2",type(p2))
+                # print("type angle:",type(vectorAngle(p1,p2)))
+                loclist.append(locInfo(id[i],bbox[i].tolist(),vectorAngle(p1,p2)))
+                
+                # print("locList: ",loclist[0].__dict__)
+            for i in loclist:
+                print("i.orientation: ",i.orientation)
+            
+            if (len(bbox)>0):
+                locJSON = json.dumps([ob.__dict__ for ob in loclist])
+                # print("locJSON passed")
+                msgTxt = msg("OD",locJSON).__dict__
+                # msgTxt = lib.msg("OD",locJSON).toJSON
+                print("MSG TXT : ",msgTxt , type(msgTxt))
+                
+                # if ((time.time()-sendtime)>0.1):
+                #     jsonSend(lib.showtime(),msgTxt)
+                #     sendtime=time.time()
+                jsonSend(lib.showtime(),msgTxt)
+                # time.sleep(0.05)
+                # lib.send(client,msgTxt)
+                
+        except:
+            print('Server Connection lost')
+            
+            return False
     fpsstring = "FPS:" + str(fps)
-    if (len(bbox)>0):
-        locJSON = json.dumps([ob.__dict__ for ob in loclist])
-        # print("locJSON passed")
-        msgTxt = msg("OD",locJSON).__dict__
-        # msgTxt = lib.msg("OD",locJSON).toJSON
-        print("MSG TXT : ",msgTxt , type(msgTxt))
-        
-        # if ((time.time()-sendtime)>0.1):
-        #     jsonSend(lib.showtime(),msgTxt)
-        #     sendtime=time.time()
-        jsonSend(lib.showtime(),msgTxt)
-        # time.sleep(0.05)
-        # lib.send(client,msgTxt)
-    
     img = cv2.putText(img, str(len(bbox)),(50, 50),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
     img = cv2.putText(img, fpsstring,(50, 100),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
+    if(connected):
+        img = cv2.putText(img, 'Online Mode',(50, 150),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
+    else:
+        img = cv2.putText(img, 'Offline Mode',(50, 150),cv2.FONT_HERSHEY_SIMPLEX,1,(0, 255, 0),2)
+    
     
     aruco.drawDetectedMarkers(img,bbox)
+    return True
 #Functions
  
 if __name__ == "__main__":    
     # Connection Init
- 
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(ADDR)
-    print("connected")
-    send("From Object detection")
-    
-    # Connection Init
-    sendtime = time.time()        
-    while True:
-        # print("Hi")
-        if VideoCap: _,img = cap.read()
-        else:
-            pass
-        if cv2.waitKey(1)==113:
-            break
-        findAruco(img)
-        cv2.imshow("img",img)
+    terminate = False
+    while not terminate:
+        haveServer=False
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(ADDR)
+            print("connected")
+            send("From Object detection")
+            haveServer=True
+        except:
+            print('Run in no server Mode ')
+        
+        # Connection Init
+        sendtime = time.time()        
+        while True:
+            # print("Hi")
+            if VideoCap: _,img = cap.read()
+            else:
+                pass
+            if cv2.waitKey(1)==113:
+                terminate = True
+                break
+            if(not findAruco(img,haveServer)):
+                break
+            cv2.imshow("img",img)
     

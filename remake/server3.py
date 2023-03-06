@@ -96,22 +96,22 @@ def updateloc(c:lib.connection):
         
         try:# put list of robot to be update into list and execute updates
             recvLocJson = json.loads(camdata.data['data'])
-            # print(lib.fnlogg(),"Parsed cam data")
-            # print(recvLocJson)
-            for i in range(len(recvLocJson)): 
-                listForUpdate.append(recvLocJson[i]['index'][0])
-            # print("captured robots'ID",listForUpdate)
-            if len(listForUpdate)>0:
-                for i in range(len(listForUpdate)): #for # of detected robot
-                    # print("captured robots'ID",i)
-                    for robot in robotlist:
-                        if int(robot.arindex) == int(listForUpdate[i]):
-                            robot.setloc(recvLocJson[i]['coordination'][0],recvLocJson[i]['orientation'])
-                            # print(robot.orientation)
+        
         except:
             print(lib.logg(),"No robot exits yet")
             pass
-        
+        print(lib.fnlogg(),"[updateloc] ","Parsed cam data")
+        # print(recvLocJson)
+        for i in range(len(recvLocJson)): 
+            listForUpdate.append(recvLocJson[i]['index'][0])
+        # print("captured robots'ID",listForUpdate)
+        if len(listForUpdate)>0:
+            for i in range(len(listForUpdate)): #for # of detected robot
+                # print("captured robots'ID",i)
+                for robot in robotlist:
+                    if int(robot.arindex) == int(listForUpdate[i]):
+                        robot.setloc(recvLocJson[i]['coordination'][0],recvLocJson[i]['orientation'])
+                        # print(robot.orientation)
         
 #------------------------------CAM Part-----------------------------------#
 
@@ -535,10 +535,10 @@ if __name__ == '__main__':
     t.start()
     t = Thread(target=acceptRobot)
     t.start()
-    camProcess = mp.Process(target=acceptCam)
-    camProcess.start()
-    # t = Thread(target=acceptCam)
-    # t.start()  
+    # camProcess = mp.Process(target=acceptCam)
+    # camProcess.start()
+    t = Thread(target=acceptCam)
+    t.start()  
     t = Thread(target=acceptCLI)
     t.start()
 
@@ -549,7 +549,7 @@ if __name__ == '__main__':
     #     #     except:
     #     #         print("couldn't send msg")
     while(True):
-        time.sleep(0.1)
+        start = time.time()
         for robot in robotlist:
             # print(robot.arindex,robot.action)
             if((robot.action!='')):
@@ -568,4 +568,4 @@ if __name__ == '__main__':
                 else:
                     robot.clearAction()
                 print(lib.logg(),"Sent CMD to ", robot.arindex)
-            
+        print('[main]cycle time: ',time.time()-start)
