@@ -18,17 +18,17 @@ lib.send(s,'8')
 # lib.send(s,msg)
 
 # lib.send(s,msg)
-
+counter = 0
 while(True):
     # command = input("Waiting New input: ")
     # print(command)
     # msg = lib.msg(command,'None').toJSON()
     
     try:
-        if (random.random()>0.5):
-            msg = 'Red'
+        if (counter%2):
+            msg = 'red'
         else:
-            msg = 'Green'
+            msg = 'green'
         msg = lib.msg(msg,'None').toJSON()
         lib.send(s,msg)
         print('sent')
@@ -45,6 +45,7 @@ while(True):
             except:
                 print("Failed to reconnect")
                 pass
+    counter +=1
         
 
     

@@ -5,7 +5,8 @@ import socket
 from typing import Union
 import numpy as np
 # SERVER = "127.0.0.1"
-SERVER = "192.168.1.83" #home wifi
+# SERVER = "192.168.1.83" #home wifi
+SERVER = "192.168.1.12" #PC WIFI
 # SERVER = "172.20.10.3" #iphone
 # SERVER = "192.168.31.36" #XiaoMi
 PORT = 5050

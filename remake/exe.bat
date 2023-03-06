@@ -1,4 +1,4 @@
 @echo on
 call conda activate robot
-cmd /k "python sub.py"
+cmd /k "python startAll.py"
 

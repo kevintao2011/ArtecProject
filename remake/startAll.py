@@ -2,7 +2,7 @@ import subprocess
 import os
 
 print("[Start up] Opening server")
-serverTerminal = subprocess.Popen(['python', 'server2.py'], stdout=None, stderr=None, stdin=None, close_fds=True,creationflags=subprocess.CREATE_NEW_CONSOLE)
+serverTerminal = subprocess.Popen(['python', 'server3.py'], stdout=None, stderr=None, stdin=None, close_fds=True,creationflags=subprocess.CREATE_NEW_CONSOLE)
 
 
 print("[Start up] Opening CLI server")
