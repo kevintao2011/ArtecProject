@@ -558,7 +558,7 @@ if __name__ == '__main__':
                     print(lib.logg(),"Sending CMD", robot.action,"to ", robot.arindex," using ip ",robot.conn.ip,robot.conn.port)
                     lib.sendline(robot.conn.s,robot.action)
                     
-
+                
                 
                 if(robot.getContFlag()):
                     print(lib.logg(),"doing cont function")
