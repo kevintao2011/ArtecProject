@@ -18,15 +18,6 @@ import lib
 import time
 
     
-#-- Camera Init --
-VideoCap = True
-cap=cv2.VideoCapture(1, cv2.CAP_ANY)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH,1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT,800)
-
-fps = int(cap.get(5))
-# _, frame = cap.read()
-#-- Camera Init --
 
 
 # Connection variable
@@ -36,7 +27,20 @@ PORT = lib.CAM_PORT
 ADDR = lib.CAM_ADDR
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
+CAM_WIDTH = 1280
+CAM_HEIGHT = 800
 # Connection variable
+
+#-- Camera Init --
+VideoCap = True
+cap=cv2.VideoCapture(1, cv2.CAP_ANY)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,CAM_WIDTH)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT,CAM_HEIGHT)
+
+fps = int(cap.get(5))
+# _, frame = cap.read()
+#-- Camera Init --
+
 
 #Object Detection Var
 loclist = []
