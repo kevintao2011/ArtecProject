@@ -25,7 +25,7 @@ import os
 
 import machine
 import pyatcrobo2
-import pickle
+
 
 #-----------------------------IMPORTS------------------------------------------#
 
@@ -38,7 +38,8 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 # SERVER = "10.22.1.126"
 # SERVER = "192.168.31.36" #Xiaomi
 # Server = "127.0.0.1"
-SERVER = "192.168.1.83"  # home wifi
+# SERVER = "192.168.1.83"  # home wifi
+SERVER = "192.168.1.12"  # home wifi
 f = open('config.json')
 config = json.load(f)
 ROBOTID = config['arID']
@@ -185,20 +186,28 @@ def nonblkingRecv(s:socket):
     return data
 
 def ServerConnection():
+    """_summary_
+    Use as Thread fucntion , a foreverloop
+    """
     global online
     while(True):
         online = False
-        s = connectServer()
         try:
-            sendBytes(s,ROBOTID)
-        except :
-            print('[ServerConnection]:cannot HS, Disconnected from server')
-        try:
-            updateCMD(s)
+            s = connectServer()
+            online = True
         except:
-            print('[ServerConnection]:cannot HS, Disconnected from server')
-            command = False
-    
+            pass
+        if online:
+            try:
+                sendBytes(s,ROBOTID)
+            except :
+                print('[ServerConnection]:cannot HS, Disconnected from server')
+            try:
+                updateCMD(s)
+            except:
+                print('[ServerConnection]:cannot HS, Disconnected from server')
+                command = False
+        
 def updateCMD(s: socket.socket):
     """_summary_
     Description: 
@@ -304,26 +313,27 @@ def do_connect():
     
 def connectServer()->socket.socket:
     '''
-    Description: Connect to Server , it is deadloop is server is dead
-    Return: Socket.socket
+    Description:  Connect to Server , it is deadloop is server is dead \n
+    Return: Socket.socket, else raise OS error \n
+    upper level is serverConnection
     
     '''
     ADDR = (SERVER, PORT) 
 
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
-    client.setblocking(1)
-    print('[ConnectServer] NOT blking :')
-    connected = False
+    b = client.setblocking(1)
+    print('[ConnectServer] NOT blking :', b)
+
     while (True):
         try:
             print('try connect to server')
             client.connect(ADDR)
-            break
+            return client
         except:
-            print('Retrying connnect to server in 3 second......')
-            utime.sleep(3)
-    return client
+            print("cannot connect to server")
+            raise OSError
+    
     
 def recvdata(socket: socket.socket):
     """
