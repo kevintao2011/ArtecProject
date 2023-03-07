@@ -56,7 +56,8 @@ class msg(object):
         
 class connection():
     """
-    Description: Inlcude socket obj , ip and port
+    Description: Inlcude socket obj , ip and port\n
+    socket is a tuple of (socket,ip)
     Args: socket (socket,(ip,ADDR))
     
     """    
@@ -75,11 +76,13 @@ class connection():
         self.port = ns[1][1]
         print('[connection: ]',logg(),"Updated Connection with",self.ip)
         
+
 class Robot(object):
     """
         
     """   
-    
+    robotIDdict = {}
+    robotSockDict ={}
     def __init__(self, id:str,conn:connection):
         
         self.conn:connection = conn
@@ -98,6 +101,9 @@ class Robot(object):
         self.p4 = (0,0)
         self.CLI_cmd = "Keep Standby"
         print('[ROBOT: ]',"Added new Robot")
+        self.robotIDdict[self.arindex]=self.conn.s
+        self.robotSockDict[self.conn.s]=self.arindex
+        
     def setloc(self,locations,orientation): 
     #self = robotobj , locations = list of list , orientation = number
         self.p1 = (locations[0][0],locations[0][1])
@@ -116,7 +122,10 @@ class Robot(object):
         print('[ROBOT: ]',"orientation:      ",self.orientation)
         
         print('[ROBOT: ]',"**********Information**********")
-        
+    def __del__(self):
+        self.conn.s.close()
+        del self.robotIDdict[self.arindex]
+        del self.robotSockDict[self.conn.s]
     # def analyzeCMD(self,message:msg):
         
     #     """
@@ -174,7 +183,7 @@ class locInfo(object):
 #pass in a socket and msg(not byte)
 def send(socket:socket.socket,msg):
     """
-    Description:Send twice, first is msglength(str) second is msg object in JSON text
+    Description:Send twice, first is msglength(str) second is bytes
     
     Args:
         socket (socket): _description_
@@ -200,7 +209,7 @@ def sendline(socket:socket.socket,msg):
         socket (socket): _description_
         msg (_type_): _description_
     """    
-    msg=msg+"\n"
+    msg=str(msg)+"\n"
     message = msg.encode(FORMAT) #turn into binary
     
     try:
@@ -408,7 +417,7 @@ def recvdata(socket:socket)->Union[msg,bool]:
         message = socket.recv(int(msg_length)).decode(FORMAT)
         # print(fnlogg(),"read msg: ",message)
         data = json.loads(message)
-        # print(fnlogg(),data)
+        print(fnlogg(),data)
         # print(fnlogg(),'Receiving cmd:',data['cmd'])
         # print(logg(),'Receiving data:',data['data'])
         # print(fnlogg(),"Type",type(data))
@@ -419,7 +428,10 @@ def recvdata(socket:socket)->Union[msg,bool]:
     
 #------------------RECV FUNCTION--------------#        
 
-        
+def updateLocation(rID,camdata):
+    locDict = {}
+    
+    return locDict
 
 def showtime():
     now = datetime.now()
