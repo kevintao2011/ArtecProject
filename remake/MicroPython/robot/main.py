@@ -92,26 +92,31 @@ def sendBytes(socket:socket.socket,msg):
     """    
     
     print('[Function sendBytes]send msg: ',msg)    
+    
+    #send message length
     msg = str(msg)
+    msg_length = len(msg)#get msg length
+    print('[Function sendBytes]send meg_length: ',msg_length)
+    # print('msg length: ',msg_length) # number of char
+    send_length = str(msg_length).encode(FORMAT) #turn int length to bin
+    send_length += b' ' * (HEADER - len(send_length)) #put space at the end space 
     try:
-        msg_length = len(msg)#get msg length
-        print('[Function sendBytes]send meg_length: ',msg_length)
-        # print('msg length: ',msg_length) # number of char
-        send_length = str(msg_length).encode(FORMAT) #turn int length to bin
-        send_length += b' ' * (HEADER - len(send_length)) #put space at the end space 
         socket.send(send_length)
+    except OSError() as error:
+        print(error)
+        socket.close()
+        print('[ERROR]failed to send msg length, closed socket')
         
-    except:
-        print('[ERROR]failed to send msg length')
-        return False
-        
+    #send data    
     try:
         message = msg.encode(FORMAT) #turn into binary
         print('[Function sendBytes] send message:',message)
         socket.send(message)
-    except:
-        print('[ERROR]failed to send msg ')
-        return False
+    except OSError() as error:
+        print(error)
+        print('[ERROR]failed to send msg, closed socket ')
+        socket.close()
+        
     # print(logg(),"sent")
 def sendLine(socket:socket.socket,msg):
     """
@@ -201,13 +206,15 @@ def ServerConnection():
             try:
                 sendBytes(s,ROBOTID)
             except :
+                online = False
                 print('[ServerConnection]:cannot HS, Disconnected from server')
-                break
+                
             try:
-                updateCMD(s)
+                updateCMD(s) #forever loop
             except:
-                print('[ServerConnection]:cannot HS, Disconnected from server')
-                break
+                online = False
+                print('[ServerConnection]:fail to update, Disconnected from server')
+                
                 command = False
         
 def updateCMD(s: socket.socket):
@@ -232,7 +239,7 @@ def updateCMD(s: socket.socket):
         except:
             raise OSError
         #able when use select
-        print("waiting respond")
+        print("waiting respon")
         data = s.readline().decode(FORMAT).strip()
         print('[update CMD]recved:',data)
         # data = recvdata(s)
@@ -440,9 +447,12 @@ if __name__ == '__main__':
     # s = connectServer()
     
     # ServerConnection()
+    global online
     while True:
-
+        
         try:
+            # print('why not running?')#dead at first run , name error online
+            # print("online?",online)
             # print("command:",command)
             if command :
                 exeTime = time.ticks_ms()
@@ -455,7 +465,7 @@ if __name__ == '__main__':
             # pass
             print('[Main Thread]: waiting connecetion established')
         # print("-Reapeated in-- " +(str((time.ticks_ms()-RepeatTime)/1000)))
-        pass
+            pass
 
 
 
