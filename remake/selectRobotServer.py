@@ -41,7 +41,7 @@ if __name__ == '__main__':
             # if a new connection is made
             if sock == server_socket:
                 client_socket, client_address = server_socket.accept()
-                print()
+                print()  
                 print(f'New connection from {client_address}')
                 # get buffer
                 # print('buffersize:',client_socket.getsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF))
