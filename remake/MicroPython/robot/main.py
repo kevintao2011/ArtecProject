@@ -202,10 +202,12 @@ def ServerConnection():
                 sendBytes(s,ROBOTID)
             except :
                 print('[ServerConnection]:cannot HS, Disconnected from server')
+                break
             try:
                 updateCMD(s)
             except:
                 print('[ServerConnection]:cannot HS, Disconnected from server')
+                break
                 command = False
         
 def updateCMD(s: socket.socket):
@@ -225,11 +227,12 @@ def updateCMD(s: socket.socket):
         start = time.ticks_ms()
         # print("waitng msg...")
         #able when use select
-        # try:
-        #     sendLine(s,ROBOTID) # for select
-        # except:
-        #     raise OSError
+        try:
+            sendLine(s,ROBOTID) # for select
+        except:
+            raise OSError
         #able when use select
+        print("waiting respond")
         data = s.readline().decode(FORMAT).strip()
         print('[update CMD]recved:',data)
         # data = recvdata(s)
@@ -329,6 +332,7 @@ def connectServer()->socket.socket:
         try:
             print('try connect to server')
             client.connect(ADDR)
+            print("[Connect server]",client)
             return client
         except:
             print("cannot connect to server")
