@@ -1,3 +1,3 @@
 @echo on
 call conda activate robot
-cmd /k "python clientRemake.py"
+cmd /k "python clientRemakeNew.py"
