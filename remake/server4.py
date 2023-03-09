@@ -117,7 +117,7 @@ if __name__ == '__main__':
                     for robotid in robots.keys():
                         if robotid == id:
                             del robots[id]
-                            print('it is a reconnect connection , old is deleted')
+                            print('it is a robot reconnect connection , old is deleted')
                             break
                     robots[clientSocket]=lib.Robot(id,lib.connection((clientSocket,clientAddress)))
                     # read_sockets.extend([s["Robot"].conn.s for s in robots.values()])
@@ -132,25 +132,12 @@ if __name__ == '__main__':
                     cliSocket = clientSocket
                     online["CLI"] = True                
                 elif sock == CAM_server:
-                    
-                    try:
-                        isinstance(camSocket,socket.socket)
-                        clientSocket.close()
-                        print('it is a reconnect connection , old is deleted')
-                    except:
-                        print('First CAM connection')
                         
                     camSocket = clientSocket
                     online["CAM"] = True 
                 elif sock == GUI_server:
                     
-                    try:
-                        isinstance(guiSocket,socket.socket)
-                        guiSocket.close()
-                        print('it is a reconnect connection , old is deleted')
-                    except:
-                        print('First gui connection')
-                        
+                    
                     guiSocket = clientSocket
                     online["GUI"] = True 
                 else:
@@ -169,28 +156,49 @@ if __name__ == '__main__':
                             # command = lib.recvdata(sock)
                             # command = command.getCMD()
                             command = lib.recvBytes(sock)
-                            print('clicmd:')
-                            
                         except:
                             print('cli disconnected ')
                             cliSocket.close()
                             del cliSocket
                             online["CLI"] = False 
+                        targets = lib.getTargets(command,robots)
+                        robotActionsDict = {}
+                        print(targets)
+                        for id in targets:
+                            robotActionsDict[id] = lib.analyze(command,id,robots)
+                            write_sockets.append(lib.Robot.robotIDdict[id])
+                        for id in robotActionsDict:
+                            robots[lib.Robot.robotIDdict[id]].action=robotActionsDict.get(id)
+                        print('clicmd:',robotActionsDict)
+                        
+                            
+                        
                 if (online["CAM"]):
                     found = True
                     if sock == camSocket:
-                        camdata = lib.recvCAM(sock)
+                        camdata = lib.recvCAM(sock) #return plain jsontext
                         
-                        locDict = lib.updateLocation([r['Robot'].arindex for r in robots.values()],camdata)
-                        
-                        for i in locDict.keys():
-                            robots[i]["Robot"].location = locDict[i]["location"]
+                        locDict = lib.processLocation(robots.values(),camdata) #load json and return nested dict {"id"}
+                        if locDict:
+                            for i in  (locDict.keys()):
+                                
+                                try:
+                                    robots[lib.Robot.robotIDdict[i]].location = locDict[i].coordination
+                                    robots[lib.Robot.robotIDdict[i]].orientation = locDict[i].orientation
+                                except:
+                                    # print(f'robot not yet register! ',i)
+                                    pass
                 try:
                     # print('From robots',robots[sock])
-                    if(robots[sock] and command!=""):
+
+                    if(robots[sock]):
+                        if(robots[sock].continuousActionFlag):
+                            a =lib.analyze(robots[sock].contAction,robots[sock].arindex,robots)
+                            print('[read_s:] reanalyze from cont action:',a)
                         print("Request from robot",robots[sock].arindex)
                         sock.recv(1024)
-                        write_sockets.append(sock)
+                        if not sock in write_sockets:
+                            write_sockets.append(sock)
                         
                 except:
                     pass
@@ -206,12 +214,12 @@ if __name__ == '__main__':
                     
         for sock in write_sockets: #how to access robot socket asap
             
-            if robots[sock]:
+            if robots[sock] and robots[sock].action!='':
                 try:
                     print(command)
-                    lib.sendline(sock,command)
+                    lib.sendline(sock,robots[sock].action)
                     print("sent to ",robots[sock].arindex)
-                    command = ""
+                    robots[sock].action = ''
                 except:
                     pass
           

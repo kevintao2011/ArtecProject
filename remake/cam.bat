@@ -1,3 +1,3 @@
 @echo on
 call conda activate robot
-cmd /k "python camera.py"
+cmd /k "python cameraNew.py"

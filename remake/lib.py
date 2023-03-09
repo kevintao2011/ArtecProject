@@ -4,6 +4,7 @@ import json
 import socket
 from typing import Union
 import numpy as np
+import time
 # SERVER = "127.0.0.1"
 # SERVER = "192.168.1.83" #home wifi
 SERVER = "192.168.1.12" #PC WIFI
@@ -157,6 +158,7 @@ class Robot(object):
         self.contAction = action
         self.continuousActionFlag=True
     def endContAction(self):
+        print("ended to cont mode")
         self.contAction = ''
         self.continuousActionFlag=False
     def getContFlag(self):
@@ -197,8 +199,8 @@ def send(socket:socket.socket,msg):
     try:
         socket.send(send_length)
         socket.send(message)
-    except socket.error as error:
-        print('[send]',error)
+    except :
+        print('[send]: lost connection')
     # print(logg(),"sent")
     
 def sendline(socket:socket.socket,msg):
@@ -348,38 +350,29 @@ def recvForGUI(socket:socket.socket):
     else:
         raise OSError
 def recvCAM(socket:socket.socket):
-    """_summary_
+    """
     Description:
-        Read msg length and msg,handle raw byte income,return UTF-8 string or False (if failed -> should disconnect), with specified msg legth, overread can be eliminated
-    Args:
-        socket (socket): _description_
+        CAM handle raw byte income, reuturn lib.msg object \n
+    Args:\n
+        socket (socket): _description_\n
 
-    Returns:
-        _type_: Return in string
+    Returns:\n
+        Union[msg,bool]: Return in format of {'cmd':str,'data',str}\n
     """    
-    # socket.settimeout(0.5)
-    print('[lib.recvCAM] timeout ',socket.gettimeout())
-    print('[lib.recvCAM] blocking ',socket.getblocking())
-    msg_length = socket.recv(HEADER).decode(FORMAT) 
-    
+    msg_length = socket.recv(HEADER).decode(FORMAT)
+    # print(fnlogg(),"read msg_length: ",msg_length)
     if msg_length:
-        
-        print(socket.getpeername(),'[lib.recvCAM]message length:', msg_length)
-        try:
-            msg_length = int(msg_length)
-        except:
-            print('[lib.recvCAM]no msg length got')
-            return msg_length
-        try:
-            print('[lib.recvCAM]waiting msg')
-            msg = socket.recv(msg_length).decode(FORMAT)
-            print('[lib.recvCAM]msg: ', msg)
-        except:
-            print('[lib.recvCAM]no msg got')
-            raise OSError
-        return msg
+        message = socket.recv(int(msg_length)).decode(FORMAT)
+        # print(fnlogg(),"read msg: ",message)
+        data = json.loads(message)
+        # print(fnlogg(),data)
+        # print(fnlogg(),'Receiving cmd:',data['cmd'])
+        # print(logg(),'Receiving data:',data['data'])
+        # print(fnlogg(),"Type",type(data))
+        data = msg(data['cmd'],data['data'])
+        return data
     else:
-        raise OSError
+        return False
 def recvThenAck(s:socket.socket):
     """_summary_
     Description:
@@ -428,10 +421,167 @@ def recvdata(socket:socket)->Union[msg,bool]:
     
 #------------------RECV FUNCTION--------------#        
 
-def updateLocation(rID,camdata):
-    locDict = {}
+def processLocation(rbotobjects:list[Robot],camPlainJson:msg)->dict:
     
-    return locDict
+    
+    resultDict = {}
+    try:# put list of robot to be update into list and execute updates
+        recvLocJson = json.loads(camPlainJson.data['data'])
+    
+    except:
+        # print(logg(),"No robot exits yet")
+        return {}
+    
+    for i in range(len(recvLocJson)): 
+        resultDict[str(recvLocJson[i]['index'][0])] = locInfo(recvLocJson[i]['index'][0],recvLocJson[i]['coordination'][0],recvLocJson[i]['orientation'])
+
+    
+    # print('processLocation' , resultDict)
+    return resultDict
+    
+        # try:
+        #     camdata = lib.recvdata(camConnection.s)
+            
+        # except:
+        #     print("[updateloc] ","CAM disconnected")
+        
+        # try:# put list of robot to be update into list and execute updates
+        #     recvLocJson = json.loads(camdata.data['data'])
+        
+        # except:
+        #     print(lib.logg(),"No robot exits yet")
+        #     pass
+        # for i in range(len(recvLocJson)): 
+        #     listForUpdate.append(recvLocJson[i]['index'][0])
+        
+        # if len(listForUpdate)>0:
+        #     for i in range(len(listForUpdate)): #for # of detected robot
+                
+        #         for robot in robotlist:
+        #             if int(robot.arindex) == int(listForUpdate[i]):
+        #                 robot.setloc(recvLocJson[i]['coordination'][0],recvLocJson[i]['orientation'])
+                        
+def getTargets(message:str,robots:dict):
+    """_summary_
+    1) Pass in exact string sent from cli (str), \n
+    2) Classify targets \n
+    3) Determine if cmd need further analyze base on environment factors \n
+    4) Reutrn list of command \n
+    Args:
+        message (lib.msg): _description_
+    """
+    start = time.time()
+    targets = []
+    command = ''
+    print(fnlogg(),"calling getTargets")
+    #CMD type: onee-time, continue, mass,specific
+    try: #if mass
+        message = message.split(",")
+    except: #otherwise
+        pass
+    # classify it is mass/specific command or to server
+    if(len(message)==1):
+        
+        if(message[0]=="display"):
+            print(fnlogg(),"teminal cmd!")
+            for robot in robots.values():
+                robot:Robot
+                robot.displayInfo()
+            
+        else:
+            print(fnlogg(),"Mass Command")
+            for robot in robots.values():
+                targets.append(robot.arindex)
+            command=message[0] #cmdstr = cmdstr.split(",")
+            print(fnlogg(),"targets ",targets)
+
+            # for robot in robotlist:
+            #     robot.action = cmdstr
+            #     print(lib.fnlogg(),"updated action of all")
+    else:
+        print(fnlogg(),"specific cmd")
+        command = message[len(message)-1]
+        print(fnlogg(),"command: ",command)
+        for ID in message:
+            targets.append(ID)
+    for t in targets:
+        t = str(t)
+    print('returns Targets:',targets)
+    return targets
+def analyze(command,target,robots:dict):
+    """_summary_
+
+    Args:
+        command (_type_):  str
+        target (_type_): id 
+        robots (dict): robots dict {id:sock}
+    """
+    start = time.time()
+    robot= robots[Robot.robotIDdict[target]]
+    # if robot.continuousActionFlag:
+    #     command = robot.contAction
+    specific = False
+    for k in cmdlist.keys() :
+        if (k in command):
+            robot.contAction=command
+            print(fnlogg(),"[analyze]:specific",target,command)
+            
+            print(logg(),"[analyze]:analyzeSpecificCMD")
+            print(logg(),"[analyze]:command",command) #command 'dir:90'
+            commandA = command.split(':') #commandA ['dir', '90']
+            print(logg(),"[analyze]:commandA",commandA)
+            param = commandA[1].split('-')
+            if (commandA[0]=='dir'):
+                direction = int(param[0])
+                robots[Robot.robotIDdict[target]].startContAction(command)
+                ori = int(robots[Robot.robotIDdict[target]].orientation)
+                print('[analyze]:Orientation: ',ori)
+                if(ori<direction):
+                    robots[Robot.robotIDdict[target]].action = 'cw' 
+                    print(robots[Robot.robotIDdict[target]].action,'cw!')
+                elif(ori>direction):
+                    robots[Robot.robotIDdict[target]].action = 'ccw'
+                if abs(direction - ori) < 15 or abs(ori - direction)<15:
+                    robots[Robot.robotIDdict[target]].action = 'stop'
+                    print(direction,' Degree!')
+                    robots[Robot.robotIDdict[target]].endContAction()    
+            elif (commandA[0]=='move to'):
+                robots[Robot.robotIDdict[target]].startContAction(command)
+                x,y = param[0],param[1] #x,y is coor of destination
+                x = int(x)
+                y = int(y)
+                s = str(robots[Robot.robotIDdict[target]].location[0])+' '+str(robots[Robot.robotIDdict[target]].location[1])
+                direction = vectorAngle(robots[Robot.robotIDdict[target]].location,(x,y))  #y need to revert becoz of coordination is not same as classic 
+                robots[Robot.robotIDdict[target]].remark=s+' '+str(direction)
+                ori = int(robots[Robot.robotIDdict[target]].orientation)
+                
+                if abs(direction - ori) < 10 or abs(ori - direction)<10:
+                    if(abs(robots[Robot.robotIDdict[target]].location[0] - x) < 100 or abs(x-robots[Robot.robotIDdict[target]].location[0]) < 100) and ((abs(robots[Robot.robotIDdict[target]].location[1] - y) < 100 or abs(y-robots[Robot.robotIDdict[target]].location[1]) < 100)):
+                        robots[Robot.robotIDdict[target]].action = 'stop'
+                        robots[Robot.robotIDdict[target]].endContAction()
+                    else:
+                        robots[Robot.robotIDdict[target]].action = 'fw'
+                    # robot.action = 'stop'
+                    # print(direction,' Degree!')
+                    # robot.endContAction()
+                elif(ori<direction):
+                    print('Heading to direction',direction,'from',ori)
+                    robots[Robot.robotIDdict[target]].action = 'cw' 
+                elif(ori>direction):
+                    print('Heading to direction',direction,'from',ori)
+                    robots[Robot.robotIDdict[target]].action = 'ccw'
+            break
+        else:
+            print(logg(),"[analyze]:switched back to plain cmd")
+            robots[Robot.robotIDdict[target]].endContAction()
+            robots[Robot.robotIDdict[target]].action = command
+            print(logg(),"[analyze]:updated action of", robots[Robot.robotIDdict[target]].arindex,'to',robots[Robot.robotIDdict[target]].action)
+    
+    print("analyzed in ",time.time()-start)
+    print('robot.action:',robots[Robot.robotIDdict[target]].action)
+    robots[Robot.robotIDdict[target]].ContAction=robots[Robot.robotIDdict[target]].action
+    return robots[Robot.robotIDdict[target]].action
+    
 
 def showtime():
     now = datetime.now()
