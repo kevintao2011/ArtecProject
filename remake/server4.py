@@ -181,13 +181,15 @@ if __name__ == '__main__':
                         locDict = lib.processLocation(robots.values(),camdata) #load json and return nested dict {"id"}
                         if locDict:
                             for i in  (locDict.keys()):
-                                
-                                try:
-                                    robots[lib.Robot.robotIDdict[i]].location = locDict[i].coordination
+                                if robots:
+                                    robots[lib.Robot.robotIDdict[i]].setloc(locDict[i].coordination,locDict[i].orientation)
                                     robots[lib.Robot.robotIDdict[i]].orientation = locDict[i].orientation
-                                except:
-                                    # print(f'robot not yet register! ',i)
-                                    pass
+                                # try:
+                                #     robots[lib.Robot.robotIDdict[i]].setloc(locDict[i].coordination,)
+                                #     robots[lib.Robot.robotIDdict[i]].orientation = locDict[i].orientation
+                                # except:
+                                #     # print(f'robot not yet register! ',i)
+                                #     pass
                 try:
                     # print('From robots',robots[sock])
 

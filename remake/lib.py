@@ -22,6 +22,8 @@ CAM_ADDR = (SERVER,CAM_PORT)
 ROBOT_ADDR = (SERVER,ARTEC_PORT)
 FORMAT = 'utf-8'
 # BUFFER = 2048
+CAM_RES = (1280,800)
+ARID_LENGTH = 34 
 HEADER = 64
 funlog=True
 
@@ -30,7 +32,7 @@ funlog=True
 cmdlist ={
 "dir": 1,
 "move to": 2,
-
+"disperse": 3,
 }
 class msg(object):
     """_summary_
@@ -84,6 +86,11 @@ class Robot(object):
     """   
     robotIDdict = {}
     robotSockDict ={}
+    fieldSize = (0,0)  
+    ROBOTACTUALSIZE = 68 #radius
+    robotPixelSize:float
+    IDPixelSize:float
+    safeCorners = [(0,0),(0,0),(0,0),(0,0)]
     def __init__(self, id:str,conn:connection):
         
         self.conn:connection = conn
@@ -95,6 +102,8 @@ class Robot(object):
         self.remark:str = ''
         self.handshake:bool = False
         self.continuousActionFlag:bool = False
+        self.robotPixelSize = (0,0)
+        self.IDPixelSize = (0,0)
         # sequence -> lt , rt , rb, lb
         self.p1 = (0,0)
         self.p2 = (0,0)
@@ -107,12 +116,31 @@ class Robot(object):
         
     def setloc(self,locations,orientation): 
     #self = robotobj , locations = list of list , orientation = number
+
         self.p1 = (locations[0][0],locations[0][1])
         self.p2 = (locations[1][0],locations[1][1])
         self.p3 = (locations[2][0],locations[2][1])
         self.p4 = (locations[3][0],locations[3][1])
         self.location = ((self.p1[0]+self.p3[0])/2,(self.p1[1]+self.p3[1])/2)
         self.orientation = orientation
+        # print(self.fieldSize,'setloc: ', self.fieldSize == (0,0))
+        if self.fieldSize == (0,0):
+            
+            IDPixelSize = abs(self.p1[0]-self.p2[0])
+            print("set safeCorner to inscribe",(IDPixelSize,IDPixelSize))
+            self.robotPixelSize = (IDPixelSize,IDPixelSize)
+            print(IDPixelSize,IDPixelSize)
+            # self.fieldSize =  (IDPixelSize/ARID_LENGTH * CAM_RES[0]),(IDPixelSize/ARID_LENGTH * CAM_RES[1])  
+            self.fieldSize =  (CAM_RES[0],CAM_RES[1])  
+            print(self.fieldSize)
+            self.robotActualSize =  (IDPixelSize/ARID_LENGTH * self.ROBOTACTUALSIZE)   
+            print(self.robotActualSize)
+            self.safeCorners[0] = (0+IDPixelSize,0+IDPixelSize)
+            self.safeCorners[1] = (self.fieldSize[0]-IDPixelSize,0+IDPixelSize)
+            self.safeCorners[2] = (self.fieldSize[0]-IDPixelSize,self.fieldSize[1]-IDPixelSize)
+            self.safeCorners[3] = (0+IDPixelSize,self.fieldSize[1]-IDPixelSize)
+            
+            print('Safe Corner are set:',self.safeCorners) 
         # print("Loc updated")
     def displayInfo(self):
         print('[ROBOT: ]',"**********Information**********")
@@ -523,7 +551,7 @@ def analyze(command,target,robots:dict):
     specific = False
     for k in cmdlist.keys() :
         if (k in command):
-            robot.contAction=command
+            # robot.contAction=command
             print(fnlogg(),"[analyze]:specific",target,command)
             
             print(logg(),"[analyze]:analyzeSpecificCMD")
@@ -570,6 +598,21 @@ def analyze(command,target,robots:dict):
                 elif(ori>direction):
                     print('Heading to direction',direction,'from',ori)
                     robots[Robot.robotIDdict[target]].action = 'ccw'
+            elif (commandA[0]=='disperse'): #should run once only
+                
+                counter = 0
+                ExecutionTeam = {}
+                for robot in robots.values() or counter <4:
+                    robot:Robot
+                    ExecutionTeam[robot] = robot.arindex
+                    
+                    cmd = 'move to:'+str(int(robot.safeCorners[counter][0]))+'-'+str(int(robot.safeCorners[counter][1]))
+                    robot.action = cmd
+                    print('[analyxe - disperse]:',robot.action)
+                    robot.startContAction(cmd)
+                    counter += 1
+            
+                
             break
         else:
             print(logg(),"[analyze]:switched back to plain cmd")
@@ -616,6 +659,7 @@ def vectorAngle(p1,p2): #ee 2104
     # print('p1[1]',p1[1])
     # print('p2[0]',p2[0])
     # print('p2[1]',p2[1])
+    print(p1,p2)
     p1 = [p1[0]+ 1j*p1[1]]
     p2 = [p2[0]+ 1j*p2[1]]
     vector1 = np.array(p1)
