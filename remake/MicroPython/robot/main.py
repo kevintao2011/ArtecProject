@@ -36,16 +36,19 @@ FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 # SERVER = "192.168.1.17"
 # SERVER = "10.22.1.126"
-# SERVER = "192.168.31.36" #Xiaomi
+SERVER = "192.168.31.36" #Xiaomi
 # Server = "127.0.0.1"
 # SERVER = "192.168.1.83"  # home wifi
-SERVER = "192.168.1.12"  # home wifi
+# SERVER = "192.168.1.12"  # home desktop
 f = open('config.json')
 config = json.load(f)
 ROBOTID = config['arID']
 ADDR = (SERVER, PORT)
-SSID = 'NETGEAR76'
-WIFIPW = 'quiettulip014'
+# SSID = 'NETGEAR76'
+# WIFIPW = 'quiettulip014'
+
+SSID = 'Test'
+WIFIPW = '12345678'
 #ADDR = ('192.168.1.83', 6000)
 
 # ----------------------------CONSTANTS-----------------------#
@@ -246,6 +249,7 @@ def updateCMD(s: socket.socket):
         print("-Interval : " + (str((time.ticks_ms() - start)/1000)))
         if data:
             command = data
+            print('[update CMD]updated global:',data)
         else:
             command = ''
         # return data
@@ -269,19 +273,20 @@ def executeCMD(received_action:command):
         redCross_logo(display)
         received_action = ""
   
-    # elif received_action == "fw":
-    #     dcmotor.rotate(m2="ccw")
-    #     dcmotor.set_power(m1=50)
-    #     dcmotor.rotate(m1="ccw")
-    #     dcmotor.set_power(m2=50)
-    # elif received_action == "bk":
-    #     dcmotor.rotate(m2="cw")
-    #     dcmotor.set_power(m1=50)
-    #     dcmotor.rotate(m1="cw")
-    #     dcmotor.set_power(m2=50)
+    elif received_action == "fw":
+        L.power(50)
+        R.power(50)
+        L.ccw()
+        R.ccw()
+        
+    elif received_action == "bk":
+        L.power(50)
+        R.power(50)
+        L.cw()
+        R.cw()
     elif received_action == "cw":
-        L.power(30)
-        R.power(30)
+        L.power(50)
+        R.power(50)
         L.cw()
         R.ccw()
         # dcmotor.rotate(m2="cw")
@@ -289,8 +294,8 @@ def executeCMD(received_action:command):
         # dcmotor.rotate(m1="ccw")
         # dcmotor.set_power(m2=30)
     elif received_action == "ccw":
-        L.power(30)
-        R.power(30)
+        L.power(50)
+        R.power(50)
         L.ccw()
         R.cw()
         # dcmotor.rotate(m2="ccw")
@@ -414,7 +419,7 @@ def redCross_logo(display:StuduinoBitDisplay):
     
 def red(display:StuduinoBitDisplay):
     img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
-    img.set_base_color((10,10,10))
+    img.set_base_color((4,4,4))
     display.show(img)
     
 #-------------------------IMG logo--------------------------------#
@@ -457,7 +462,7 @@ if __name__ == '__main__':
             if command :
                 exeTime = time.ticks_ms()
                 executeCMD(command)
-                print("-Executeded in-- " +(str((time.ticks_ms() -exeTime)/1000)))
+                print(command,"-Executeded in-- " +(str((time.ticks_ms() -exeTime)/1000)))
                 #clear command once executed
                 command=''
         except:

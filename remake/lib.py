@@ -7,9 +7,9 @@ import numpy as np
 import time
 # SERVER = "127.0.0.1"
 # SERVER = "192.168.1.83" #home wifi
-SERVER = "192.168.1.12" #PC WIFI
+# SERVER = "192.168.1.12" #PC WIFI
 # SERVER = "172.20.10.3" #iphone
-# SERVER = "192.168.31.36" #XiaoMi
+SERVER = "192.168.31.36" #XiaoMi
 PORT = 5050
 ARTEC_PORT = 1000
 # CLI_PORT = 7000
@@ -125,20 +125,21 @@ class Robot(object):
         self.orientation = orientation
         # print(self.fieldSize,'setloc: ', self.fieldSize == (0,0))
         if self.fieldSize == (0,0):
-            
+            self.fieldSize = (1280,800)
             IDPixelSize = abs(self.p1[0]-self.p2[0])
             print("set safeCorner to inscribe",(IDPixelSize,IDPixelSize))
-            self.robotPixelSize = (IDPixelSize,IDPixelSize)
+            # robot 180(r = 90) , id 35mm
+            self.robotPixelSize = (IDPixelSize*180/35,IDPixelSize*180/35)
             print(IDPixelSize,IDPixelSize)
             # self.fieldSize =  (IDPixelSize/ARID_LENGTH * CAM_RES[0]),(IDPixelSize/ARID_LENGTH * CAM_RES[1])  
             self.fieldSize =  (CAM_RES[0],CAM_RES[1])  
             print(self.fieldSize)
             self.robotActualSize =  (IDPixelSize/ARID_LENGTH * self.ROBOTACTUALSIZE)   
             print(self.robotActualSize)
-            self.safeCorners[0] = (0+IDPixelSize,0+IDPixelSize)
-            self.safeCorners[1] = (self.fieldSize[0]-IDPixelSize,0+IDPixelSize)
-            self.safeCorners[2] = (self.fieldSize[0]-IDPixelSize,self.fieldSize[1]-IDPixelSize)
-            self.safeCorners[3] = (0+IDPixelSize,self.fieldSize[1]-IDPixelSize)
+            self.safeCorners[0] = (0+IDPixelSize*2,0+IDPixelSize*2)
+            self.safeCorners[1] = (self.fieldSize[0]-IDPixelSize*2,0+IDPixelSize*2)
+            self.safeCorners[2] = (self.fieldSize[0]-IDPixelSize*2,self.fieldSize[1]-IDPixelSize*2)
+            self.safeCorners[3] = (0+IDPixelSize*2,self.fieldSize[1]-IDPixelSize*2)
             
             print('Safe Corner are set:',self.safeCorners) 
         # print("Loc updated")
@@ -509,12 +510,16 @@ def getTargets(message:str,robots:dict):
         pass
     # classify it is mass/specific command or to server
     if(len(message)==1):
-        
         if(message[0]=="display"):
             print(fnlogg(),"teminal cmd!")
             for robot in robots.values():
                 robot:Robot
                 robot.displayInfo()
+            try:
+                print('field Size: ',Robot.fieldSize)
+                print('ID Pixel: ',Robot.IDPixelSize)
+            except:
+                print('RobotSIzeNot yet Captured')
             
         else:
             print(fnlogg(),"Mass Command")
@@ -528,14 +533,14 @@ def getTargets(message:str,robots:dict):
             #     print(lib.fnlogg(),"updated action of all")
     else:
         print(fnlogg(),"specific cmd")
-        command = message[len(message)-1]
+        command = message.pop()
         print(fnlogg(),"command: ",command)
         for ID in message:
             targets.append(ID)
     for t in targets:
         t = str(t)
     print('returns Targets:',targets)
-    return targets
+    return targets,command
 def analyze(command,target,robots:dict):
     """_summary_
 
@@ -550,69 +555,71 @@ def analyze(command,target,robots:dict):
     #     command = robot.contAction
     specific = False
     for k in cmdlist.keys() :
-        if (k in command):
-            # robot.contAction=command
-            print(fnlogg(),"[analyze]:specific",target,command)
-            
-            print(logg(),"[analyze]:analyzeSpecificCMD")
-            print(logg(),"[analyze]:command",command) #command 'dir:90'
-            commandA = command.split(':') #commandA ['dir', '90']
-            print(logg(),"[analyze]:commandA",commandA)
-            param = commandA[1].split('-')
-            if (commandA[0]=='dir'):
-                direction = int(param[0])
-                robots[Robot.robotIDdict[target]].startContAction(command)
-                ori = int(robots[Robot.robotIDdict[target]].orientation)
-                print('[analyze]:Orientation: ',ori)
-                if(ori<direction):
-                    robots[Robot.robotIDdict[target]].action = 'cw' 
-                    print(robots[Robot.robotIDdict[target]].action,'cw!')
-                elif(ori>direction):
-                    robots[Robot.robotIDdict[target]].action = 'ccw'
-                if abs(direction - ori) < 15 or abs(ori - direction)<15:
-                    robots[Robot.robotIDdict[target]].action = 'stop'
-                    print(direction,' Degree!')
-                    robots[Robot.robotIDdict[target]].endContAction()    
-            elif (commandA[0]=='move to'):
-                robots[Robot.robotIDdict[target]].startContAction(command)
-                x,y = param[0],param[1] #x,y is coor of destination
-                x = int(x)
-                y = int(y)
-                s = str(robots[Robot.robotIDdict[target]].location[0])+' '+str(robots[Robot.robotIDdict[target]].location[1])
-                direction = vectorAngle(robots[Robot.robotIDdict[target]].location,(x,y))  #y need to revert becoz of coordination is not same as classic 
-                robots[Robot.robotIDdict[target]].remark=s+' '+str(direction)
-                ori = int(robots[Robot.robotIDdict[target]].orientation)
+        try:
+            if (k in command):
+                # robot.contAction=command
+                print(fnlogg(),"[analyze]:specific",target,command)
                 
-                if abs(direction - ori) < 10 or abs(ori - direction)<10:
-                    if(abs(robots[Robot.robotIDdict[target]].location[0] - x) < 100 or abs(x-robots[Robot.robotIDdict[target]].location[0]) < 100) and ((abs(robots[Robot.robotIDdict[target]].location[1] - y) < 100 or abs(y-robots[Robot.robotIDdict[target]].location[1]) < 100)):
+                print(logg(),"[analyze]:analyzeSpecificCMD")
+                print(logg(),"[analyze]:command",command) #command 'dir:90'
+                commandA = command.split(':') #commandA ['dir', '90']
+                print(logg(),"[analyze]:commandA",commandA)
+                param = commandA[1].split('-')
+                if (commandA[0]=='dir'):
+                    direction = int(param[0])
+                    robots[Robot.robotIDdict[target]].startContAction(command)
+                    ori = int(robots[Robot.robotIDdict[target]].orientation)
+                    print('[analyze]:Orientation: ',ori)
+                    if(ori<direction):
+                        robots[Robot.robotIDdict[target]].action = 'cw' 
+                        print(robots[Robot.robotIDdict[target]].action,'cw!')
+                    elif(ori>direction):
+                        robots[Robot.robotIDdict[target]].action = 'ccw'
+                    if abs(direction - ori) < 15 or abs(ori - direction)<15:
                         robots[Robot.robotIDdict[target]].action = 'stop'
-                        robots[Robot.robotIDdict[target]].endContAction()
-                    else:
-                        robots[Robot.robotIDdict[target]].action = 'fw'
-                    # robot.action = 'stop'
-                    # print(direction,' Degree!')
-                    # robot.endContAction()
-                elif(ori<direction):
-                    print('Heading to direction',direction,'from',ori)
-                    robots[Robot.robotIDdict[target]].action = 'cw' 
-                elif(ori>direction):
-                    print('Heading to direction',direction,'from',ori)
-                    robots[Robot.robotIDdict[target]].action = 'ccw'
-            elif (commandA[0]=='disperse'): #should run once only
-                
-                counter = 0
-                ExecutionTeam = {}
-                for robot in robots.values() or counter <4:
-                    robot:Robot
-                    ExecutionTeam[robot] = robot.arindex
+                        print(direction,' Degree!')
+                        robots[Robot.robotIDdict[target]].endContAction()    
+                elif (commandA[0]=='move to'):
+                    robots[Robot.robotIDdict[target]].startContAction(command)
+                    x,y = param[0],param[1] #x,y is coor of destination
+                    x = int(x)
+                    y = int(y)
+                    s = str(robots[Robot.robotIDdict[target]].location[0])+' '+str(robots[Robot.robotIDdict[target]].location[1])
+                    direction = vectorAngle(robots[Robot.robotIDdict[target]].location,(x,y))  #y need to revert becoz of coordination is not same as classic 
+                    robots[Robot.robotIDdict[target]].remark=s+' '+str(direction)
+                    ori = int(robots[Robot.robotIDdict[target]].orientation)
                     
-                    cmd = 'move to:'+str(int(robot.safeCorners[counter][0]))+'-'+str(int(robot.safeCorners[counter][1]))
-                    robot.action = cmd
-                    print('[analyxe - disperse]:',robot.action)
-                    robot.startContAction(cmd)
-                    counter += 1
-            
-                
+                    if abs(direction - ori) < 10 or abs(ori - direction)<10:
+                        if(abs(robots[Robot.robotIDdict[target]].location[0] - x) < 100 or abs(x-robots[Robot.robotIDdict[target]].location[0]) < 100) and ((abs(robots[Robot.robotIDdict[target]].location[1] - y) < 100 or abs(y-robots[Robot.robotIDdict[target]].location[1]) < 100)):
+                            robots[Robot.robotIDdict[target]].action = 'stop'
+                            robots[Robot.robotIDdict[target]].endContAction()
+                        else:
+                            robots[Robot.robotIDdict[target]].action = 'fw'
+                        # robot.action = 'stop'
+                        # print(direction,' Degree!')
+                        # robot.endContAction()
+                    elif(ori<direction):
+                        print('Heading to direction',direction,'from',ori)
+                        robots[Robot.robotIDdict[target]].action = 'cw' 
+                    elif(ori>direction):
+                        print('Heading to direction',direction,'from',ori)
+                        robots[Robot.robotIDdict[target]].action = 'ccw'
+                elif (commandA[0]=='disperse'): #should run once only
+                    
+                    counter = 0
+                    ExecutionTeam = {}
+                    for robot in robots.values() or counter <4:
+                        robot:Robot
+                        ExecutionTeam[robot] = robot.arindex
+                        
+                        cmd = 'move to:'+str(int(robot.safeCorners[counter][0]))+'-'+str(int(robot.safeCorners[counter][1]))
+                        robot.action = cmd
+                        print('[analyxe - disperse]:',robot.action)
+                        robot.startContAction(cmd)
+                        counter += 1
+                                            
+                break
+        except:
             break
         else:
             print(logg(),"[analyze]:switched back to plain cmd")
@@ -620,6 +627,7 @@ def analyze(command,target,robots:dict):
             robots[Robot.robotIDdict[target]].action = command
             print(logg(),"[analyze]:updated action of", robots[Robot.robotIDdict[target]].arindex,'to',robots[Robot.robotIDdict[target]].action)
     
+        
     print("analyzed in ",time.time()-start)
     print('robot.action:',robots[Robot.robotIDdict[target]].action)
     robots[Robot.robotIDdict[target]].ContAction=robots[Robot.robotIDdict[target]].action
