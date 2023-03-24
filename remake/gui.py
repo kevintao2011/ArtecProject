@@ -4,15 +4,21 @@ import lib
 import tkinter as tk
 import socket
 
-def GUI(list):
-    def set_label():
+
+# create label 
+# create connection wif server
+
+# update GUI (pass data into list of robotData)
+
+    
+def set_label(robotlist:list[lib.Robot]):
         currentTime = lib.datetime.now()
         label['text'] = currentTime
         try:
             label_CAMiP['text'] = camConnection.port
             label_CLIIP['text'] = cliConnection.port
         except:
-            pass
+            pass # not yet recv
        
         
         for robot in robotlist:
@@ -27,16 +33,39 @@ def GUI(list):
         window.after(1, set_label)
             
     
-    def dataupdate():
-
-        # lock.acquire()
-        print('dataupdate GUI data')
-        for robot in robotlist:
-            # print(robot.arindex,' GUI update robot ori ',robot.orientation)
-            oriList[robot.arindex]['text']=str(robot.orientation)
-            window.after(100, dataupdate)
-        # lock.release()
+def dataupdate(s,robotlist):
+    try:
+        robotData = lib.recvForGUI(s)
+        print(robotData)
+    except:
+        pass #no robot yet
+    # lock.acquire()
+    print('dataupdate GUI data')
+    for robot in robotlist:
+        # print(robot.arindex,' GUI update robot ori ',robot.orientation)
+        oriList[robot.arindex]['text']=str(robot.orientation)
+        window.after(100, dataupdate)
+    # lock.release()
     
+    
+
+    
+
+if __name__=="__main__":
+    HEADER = 64
+    SERVER = lib.SERVER
+    PORT = lib.GUI_PORT
+
+    FORMAT = 'utf-8'
+    l:list[lib.Robot]=[]
+    
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect((SERVER,PORT))
+    
+    #send in neste Dict with key = robot id, sub key is properties, 
+        
+            
+    # window setUp
     window = tk.Tk()
 
     # root window
@@ -65,7 +94,7 @@ def GUI(list):
     label_CLI.grid(column=4,row=0)
     label_CLIIP = tk.Label(window, text="not connected")
     label_CLIIP.grid(column=5,row=0)
-    
+
     label_id = tk.Label(window, text="ID")
     label_id.grid(column=0,row=1)
     label_Ori = tk.Label(window, text="ori")
@@ -84,9 +113,9 @@ def GUI(list):
     label_port.grid(column=7,row=1)
     label_port = tk.Label(window, text="Latency")
     label_port.grid(column=8,row=1)
-    
-    
-    
+
+
+
     oriList =[]
     idList = []
     actionList =[]
@@ -124,18 +153,11 @@ def GUI(list):
         remarkList.append(remark)
         portList.append(port)
         latencyList.append(port)
-        
-
+    
+    # window setUp
     # label.pack()
-    dataupdate()
-    set_label()
+    robotlist = dataupdate(client,l)
+    set_label(robotlist)
     window.mainloop() #must
-
-if __name__=="__main__":
-    l:list[lib.Robot]=[]
-    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
-        s.connect((lib.SERVER,lib.GUI_PORT))
-        #send in neste Dict with key = robot id, sub key is properties, 
-        robotData = lib.recvForGUI()
-        er
+        
         

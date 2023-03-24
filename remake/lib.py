@@ -355,7 +355,6 @@ def recvForGUI(socket:socket.socket):
     Returns:
         _type_: Return in string
     """    
-    socket.settimeout(0.5)
     print('[lib.recv] timeout ',socket.gettimeout())
     print('[lib.recv] blocking ',socket.getblocking())
     msg_length = socket.recv(HEADER).decode(FORMAT) 
@@ -541,6 +540,8 @@ def getTargets(message:str,robots:dict):
         t = str(t)
     print('returns Targets:',targets)
     return targets,command
+def calDisplacement (x1,y1,x2,y2):
+    return abs(((x1-x2)^2+(y1-y2)^2)^0.5)
 def analyze(command,target,robots:dict):
     """_summary_
 
@@ -608,16 +609,31 @@ def analyze(command,target,robots:dict):
                     
                     counter = 0
                     ExecutionTeam = {}
+                    
                     for robot in robots.values() or counter <4:
                         robot:Robot
                         ExecutionTeam[robot] = robot.arindex
                         
-                        cmd = 'move to:'+str(int(robot.safeCorners[counter][0]))+'-'+str(int(robot.safeCorners[counter][1]))
-                        robot.action = cmd
-                        print('[analyxe - disperse]:',robot.action)
-                        robot.startContAction(cmd)
+                        #Disable for testing new
+                        # cmd = 'move to:'+str(int(robot.safeCorners[counter][0]))+'-'+str(int(robot.safeCorners[counter][1]))
+                        # robot.action = cmd
+                        # print('[analyxe - disperse]:',robot.action)
+                        # robot.startContAction(cmd)
                         counter += 1
-                                            
+                    
+                    for i in range(Robot.safeCorners):
+                        min = 99999999999999999999999
+                        team = ExecutionTeam.keys()
+                        for r in team.keys():
+                            r:Robot
+                            dist = calDisplacement(r.location[0],r.location[1],Robot.safeCorners[i])
+                            if  dist < min:
+                                min = dist
+                                cmd = 'move to:'+str(int(robot.safeCorners[i][0]))+'-'+str(int(robot.safeCorners[i][1]))
+                                robots[Robot.robotIDdict[team[r]]].action = cmd
+                                robot.startContAction(cmd)
+                                del team[r]
+                            
                 break
         except:
             break

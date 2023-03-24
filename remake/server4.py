@@ -11,7 +11,7 @@ import tkinter as tk
 import multiprocessing as mp
 import atexit
 import select
-
+import pickle
 
 online = {
     "CAM" : False,
@@ -136,8 +136,7 @@ if __name__ == '__main__':
                     camSocket = clientSocket
                     online["CAM"] = True 
                 elif sock == GUI_server:
-                    
-                    
+                    print("GUI Connected")
                     guiSocket = clientSocket
                     online["GUI"] = True 
                 else:
@@ -212,18 +211,27 @@ if __name__ == '__main__':
                 #         write_sockets.append(robots[r]["socket"])
                 #         print(robots[r]["socket"], "is add to write")
                     
-                
-                    
+        # try:         
+        #     if lib.Robot.robotSockDict.keys:
+        #         write_sockets.append(guiSocket)
+        # except:
+        #     pass
         for sock in write_sockets: #how to access robot socket asap
-            
-            if robots[sock] and robots[sock].action!='':
-                try:
-                    print(command)
-                    lib.sendline(sock,robots[sock].action)
-                    print("sent to ",robots[sock].arindex)
-                    robots[sock].action = ''
-                except:
-                    pass
+            if sock in lib.Robot.robotSockDict.keys():
+                if robots[sock] and robots[sock].action!='':
+                    try:
+                        print(command)
+                        lib.sendline(sock,robots[sock].action)
+                        print("sent to ",robots[sock].arindex)
+                        robots[sock].action = ''
+                    except:
+                        pass
+            else:#GUI
+                r = [robots[sock] for sock in lib.Robot.robotSockDict.keys()]
+                r =pickle.dumps(r)
+                sock.send(r)
+                pass
+                
           
             # try:
             #     command
