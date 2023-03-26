@@ -18,3 +18,14 @@ This project is developed using extenstions and Visaul Studio Code and on Window
     - https://alepycom.gitbooks.io/pycom-documentation/content/chapter/pymakr/installation/vscode.html
 6.  Install studiono bit driver
     - offical website https://www.artec-kk.co.jp/artecrobo2/en/software/
+# Firmware for ArtecRobo2
+3. get Studuinobit micoropython bin file 
+    - download link :https://www.artec-kk.co.jp/artecrobo2/data/sbmp-20190830-v0.9.8.bin
+4. Install esptool using pip install and erase with command
+    - esptool.py --chip esp32 --port COM10 erase_flash
+5. run esptool.py --chip esp32 --port COM3 --baud 1500000 write_flash -z 0x1000 sbmp-20190830-v0.9.8.bin to flash firmware 
+
+#
+this system heavily rely on micropython socket library and library of ArtecRobo, see these references for details:
+    -https://docs.micropython.org/en/latest/library/socket.html
+    -https://github.com/artec-kk/StuduinoBit_MicroPython
