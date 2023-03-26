@@ -15,6 +15,6 @@ This project is developed using extenstions and Visaul Studio Code and on Window
 4.  Install nodeJs (for pymakr)
     - official website https://nodejs.org/en
 5. Install pymakr extension on Visual Studio
-    - 
+    - https://alepycom.gitbooks.io/pycom-documentation/content/chapter/pymakr/installation/vscode.html
 6.  Install studiono bit driver
     - offical website https://www.artec-kk.co.jp/artecrobo2/en/software/
