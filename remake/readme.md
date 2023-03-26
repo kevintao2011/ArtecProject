@@ -12,9 +12,9 @@ This project is developed using extenstions and Visaul Studio Code and on Window
     - https://github.com/ArduCAM/ArduCAM_USB_Camera_Shield/tree/master/Drivers
     - AMPCAM test
     - https://amcap.en.softonic.com/download
-4. Install nodeJs (for pymakr)
+4.  Install nodeJs (for pymakr)
     - official website https://nodejs.org/en
 5. Install pymakr extension on Visual Studio
     - 
-6. Install studiono bit driver
+6.  Install studiono bit driver
     - offical website https://www.artec-kk.co.jp/artecrobo2/en/software/
