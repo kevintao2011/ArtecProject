@@ -1,7 +1,7 @@
 #   Recommended development environment
 This project is developed using extenstions and Visaul Studio Code and on Windows system. It is recommended to follow same setup for better development experience. The setup guide is provided below
 
-#   Installation step 
+#   Installation guide
 1. Install Anaconda
     - set anaconda as PATH variable so that batch file is usable
         - https://www.geeksforgeeks.org/how-to-setup-anaconda-path-to-environment-variable/
