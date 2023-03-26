@@ -25,7 +25,9 @@ This project is developed using extenstions and Visaul Studio Code and on Window
     - esptool.py --chip esp32 --port COM10 erase_flash
 5. run esptool.py --chip esp32 --port COM3 --baud 1500000 write_flash -z 0x1000 sbmp-20190830-v0.9.8.bin to flash firmware 
 
-#
-this system heavily rely on micropython socket library and library of ArtecRobo, see these references for details:
+# Libraries
+this system heavily rely on openCV and library of ArtecRobo and Python socket, see these references for details:
     -https://docs.micropython.org/en/latest/library/socket.html
     -https://github.com/artec-kk/StuduinoBit_MicroPython
+    -https://docs.micropython.org/en/latest/esp32/quickref.html
+    -https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html
