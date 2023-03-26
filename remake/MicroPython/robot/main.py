@@ -270,18 +270,46 @@ def executeCMD(received_action:command):
 
     elif received_action == "red":
         print("Execute red")
-        redCross_logo(display)
+        displayRed(display)
+        received_action = ""
+    elif received_action == "orange":
+        print("Execute orange")
+        displayOrange(display)
+        received_action = ""
+    elif received_action == "yellow":
+        print("Execute yellow")
+        displayYellow(display)
+        received_action = ""
+    elif received_action == "green":
+        print("Execute green")
+        displayGreen(display)
+        received_action = ""
+    elif received_action == "lb":
+        print("Execute lb")
+        displaylb(display)
+        received_action = ""
+    elif received_action == "blue":
+        print("Execute blue")
+        displayBlue(display)
+        received_action = ""
+    elif received_action == "purple":
+        print("Execute puerple")
+        displayPurple(display)
+        received_action = ""
+    elif received_action == "dim":
+        print("Execute dim")
+        dim(display)
         received_action = ""
   
     elif received_action == "fw":
-        L.power(50)
-        R.power(50)
+        L.power(80)
+        R.power(80)
         L.ccw()
         R.ccw()
         
     elif received_action == "bk":
-        L.power(50)
-        R.power(50)
+        L.power(80)
+        R.power(80)
         L.cw()
         R.cw()
     elif received_action == "cw":
@@ -307,6 +335,8 @@ def executeCMD(received_action:command):
         R.power(0)
         L.stop()
         R.stop()
+    elif received_action == "reset":
+        machine.reset()
     else:
         print("No registered command matched")
 
@@ -405,22 +435,60 @@ def recvdata(socket: socket.socket):
 #-------------------------IMG logo--------------------------------#
 def ok_logo(display:StuduinoBitDisplay):
     _thread.start_new_thread(green, [display])
-    
+def redCross_logo(display:StuduinoBitDisplay):
+    _thread.start_new_thread(red, [display])
+def displayRed (display:StuduinoBitDisplay):
+    _thread.start_new_thread(red, [display]) 
+def displayOrange (display:StuduinoBitDisplay):
+    _thread.start_new_thread(orange, [display])  
+def displayYellow (display:StuduinoBitDisplay):
+    _thread.start_new_thread(yellow, [display])  
+def displayGreen (display:StuduinoBitDisplay):
+    _thread.start_new_thread(green, [display])  
+def displaylb (display:StuduinoBitDisplay):
+    _thread.start_new_thread(lightblue, [display])  
+def displayBlue (display:StuduinoBitDisplay):
+    _thread.start_new_thread(blue, [display])  
+def displayPurple (display:StuduinoBitDisplay):
+    _thread.start_new_thread(purple, [display])  
 
 def green(display:StuduinoBitDisplay):
     # _thread.start_new_thread(updateCMD, [connectServer()])
     img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
     img.set_base_color((0,10,0))
     display.show(img)
-    
-
-def redCross_logo(display:StuduinoBitDisplay):
-    _thread.start_new_thread(red, [display])
-    
 def red(display:StuduinoBitDisplay):
     img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
-    img.set_base_color((4,4,4))
+    img.set_base_color((10,0,0))
+    display.show(img) 
+def blue(display:StuduinoBitDisplay):
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((0,0,10))
+    display.show(img)       
+def purple(display:StuduinoBitDisplay):
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((24,1,23))
+    display.show(img)    
+def yellow(display:StuduinoBitDisplay):
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((20,20,0))
+    display.show(img)  
+def orange(display:StuduinoBitDisplay):
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((20,10,0))
     display.show(img)
+def lightblue(display:StuduinoBitDisplay):
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((12,15,25))
+    display.show(img)   
+def dim(display:StuduinoBitDisplay):
+    img = StuduinoBitImage( '11111:11111:00000:11111:11111:')
+    img.set_base_color((0,0,0))
+    display.show(img)     
+
+
+    
+
     
 #-------------------------IMG logo--------------------------------#
 #------------------------THREAD-------------------------#

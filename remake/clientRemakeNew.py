@@ -29,21 +29,32 @@ while(True):
     #     msg = 'red'
     # else:
     #     msg = 'green'
-    try:
-        # lib.send(s,msg) #random
-        lib.send(s,command)
-    except:
-        print(lib.logg(),"Connection failed, try reconnect..")
-        connectionState = False
-        while(not connectionState):
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect(lib.CLI_ADDR)
-                # lib.send(s,'8')
-                connectionState = True
-            except:
-                print("Failed to reconnect")
-                pass
+    
+    # lib.send(s,msg) #random
+    connectionState = lib.send(s,command)
+    if connectionState:
+        print('sent')
+    else:
+        try:
+            print(lib.logg(),"Connection failed, try reconnect..")
+            s.close()
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(lib.CLI_ADDR)
+        except:
+            pass
+    
+    # except:
+    #     print(lib.logg(),"Connection failed, try reconnect..")
+    #     connectionState = False
+    #     while(not connectionState):
+    #         try:
+    #             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #             s.connect(lib.CLI_ADDR)
+    #             # lib.send(s,'8')
+    #             connectionState = True
+    #         except:
+    #             print("Failed to reconnect")
+    #             pass
     # counter+=1
         
 

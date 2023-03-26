@@ -214,11 +214,13 @@ class locInfo(object):
 #pass in a socket and msg(not byte)
 def send(socket:socket.socket,msg):
     """
-    Description:Send twice, first is msglength(str) second is bytes
+    Description:Send twice, first is msglength(str) second is bytes\n
     
-    Args:
-        socket (socket): _description_
-        msg (_type_): _description_
+    Args:\n
+        socket (socket): _description_\n
+        msg (_type_): _description_\n
+    Return:\n
+        boolean\n
     """    
     message = msg.encode(FORMAT) #turn into binary
     msg_length = len(message)#get msg length
@@ -230,7 +232,9 @@ def send(socket:socket.socket,msg):
         socket.send(message)
     except :
         print('[send]: lost connection')
+        return False
     # print(logg(),"sent")
+    return True
     
 def sendline(socket:socket.socket,msg):
     """
@@ -322,7 +326,7 @@ def recvBytes(socket:socket.socket):
     Returns:
         _type_: Return in string
     """    
-    socket.settimeout(0.5)
+    # socket.settimeout(0.5)
     print('[lib.recv] timeout ',socket.gettimeout())
     print('[lib.recv] blocking ',socket.getblocking())
     msg_length = socket.recv(HEADER).decode(FORMAT) 
@@ -387,19 +391,20 @@ def recvCAM(socket:socket.socket):
     Returns:\n
         Union[msg,bool]: Return in format of {'cmd':str,'data',str}\n
     """    
-    msg_length = socket.recv(HEADER).decode(FORMAT)
-    # print(fnlogg(),"read msg_length: ",msg_length)
-    if msg_length:
-        message = socket.recv(int(msg_length)).decode(FORMAT)
-        # print(fnlogg(),"read msg: ",message)
-        data = json.loads(message)
-        # print(fnlogg(),data)
-        # print(fnlogg(),'Receiving cmd:',data['cmd'])
-        # print(logg(),'Receiving data:',data['data'])
-        # print(fnlogg(),"Type",type(data))
-        data = msg(data['cmd'],data['data'])
-        return data
-    else:
+    try:
+        msg_length = socket.recv(HEADER).decode(FORMAT)
+        # print(fnlogg(),"read msg_length: ",msg_length)
+        if msg_length:
+            message = socket.recv(int(msg_length)).decode(FORMAT)
+            # print(fnlogg(),"read msg: ",message)
+            data = json.loads(message)
+            # print(fnlogg(),data)
+            # print(fnlogg(),'Receiving cmd:',data['cmd'])
+            # print(logg(),'Receiving data:',data['data'])
+            # print(fnlogg(),"Type",type(data))
+            data = msg(data['cmd'],data['data'])
+            return data
+    except:
         return False
 def recvThenAck(s:socket.socket):
     """_summary_
@@ -510,15 +515,16 @@ def getTargets(message:str,robots:dict):
     # classify it is mass/specific command or to server
     if(len(message)==1):
         if(message[0]=="display"):
-            print(fnlogg(),"teminal cmd!")
-            for robot in robots.values():
-                robot:Robot
-                robot.displayInfo()
-            try:
-                print('field Size: ',Robot.fieldSize)
-                print('ID Pixel: ',Robot.IDPixelSize)
-            except:
-                print('RobotSIzeNot yet Captured')
+            # print(fnlogg(),"teminal cmd!")
+            # for robot in robots.values():
+            #     robot:Robot
+            #     robot.displayInfo()
+            # try:
+            #     print('field Size: ',Robot.fieldSize)
+            #     print('ID Pixel: ',Robot.IDPixelSize)
+            # except:
+            #     print('RobotSIzeNot yet Captured')
+            print(robots.keys)
             
         else:
             print(fnlogg(),"Mass Command")
@@ -535,7 +541,10 @@ def getTargets(message:str,robots:dict):
         command = message.pop()
         print(fnlogg(),"command: ",command)
         for ID in message:
-            targets.append(ID)
+            for r in robots.values():
+                r:Robot
+                if r.arindex == ID:
+                    targets.append(ID)
     for t in targets:
         t = str(t)
     print('returns Targets:',targets)
@@ -551,20 +560,26 @@ def analyze(command,target,robots:dict):
         robots (dict): robots dict {id:sock}
     """
     start = time.time()
-    robot= robots[Robot.robotIDdict[target]]
+    try:
+        robot= robots[Robot.robotIDdict[target]]
+    except:
+        print('[analyze] no such robot')
+        return False
+        
     # if robot.continuousActionFlag:
     #     command = robot.contAction
     specific = False
     for k in cmdlist.keys() :
-        try:
-            if (k in command):
-                # robot.contAction=command
-                print(fnlogg(),"[analyze]:specific",target,command)
-                
-                print(logg(),"[analyze]:analyzeSpecificCMD")
-                print(logg(),"[analyze]:command",command) #command 'dir:90'
-                commandA = command.split(':') #commandA ['dir', '90']
-                print(logg(),"[analyze]:commandA",commandA)
+        # try:
+        if (k in command):
+            # robot.contAction=command
+            print(fnlogg(),"[analyze]:cmd need to be analyze",target,' command: ',command)
+            
+            # print(logg(),"[analyze]:analyzeSpecificCMD")
+            # print(logg(),"[analyze]:command",command) #command 'dir:90'
+            commandA = command.split(':') #commandA ['dir', '90']
+            print(logg(),"[analyze]:commandA splitted by :",commandA)
+            if len(commandA)>1:
                 param = commandA[1].split('-')
                 if (commandA[0]=='dir'):
                     direction = int(param[0])
@@ -606,7 +621,7 @@ def analyze(command,target,robots:dict):
                         print('Heading to direction',direction,'from',ori)
                         robots[Robot.robotIDdict[target]].action = 'ccw'
                 elif (commandA[0]=='disperse'): #should run once only
-                    
+                    print('Analyzing disperse.... ')
                     counter = 0
                     ExecutionTeam = {}
                     
@@ -620,7 +635,7 @@ def analyze(command,target,robots:dict):
                         # print('[analyxe - disperse]:',robot.action)
                         # robot.startContAction(cmd)
                         counter += 1
-                    
+                    print('Execution Team: ',ExecutionTeam.items())
                     for i in range(Robot.safeCorners):
                         min = 99999999999999999999999
                         team = ExecutionTeam.keys()
@@ -633,10 +648,10 @@ def analyze(command,target,robots:dict):
                                 robots[Robot.robotIDdict[team[r]]].action = cmd
                                 robot.startContAction(cmd)
                                 del team[r]
-                            
-                break
-        except:
+                        
             break
+        # except:
+            # break
         else:
             print(logg(),"[analyze]:switched back to plain cmd")
             robots[Robot.robotIDdict[target]].endContAction()

@@ -137,8 +137,15 @@ def findAruco(img,connected:bool,marker_size=4 , total_markers = 250,draw = True
         # [745., 291.],
         # [783., 372.],
         # [689., 396.]]], dtype=float32),)
-        for i in range(len(ids)) :
-            img = cv2.putText(img, str(ids[0][i]),(int(bbox[0][i][0][0]), int(bbox[0][i][0][1])),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0, 0),2)
+        
+        idlist:list
+        idlist = ids.tolist()
+        print('id written:',idlist)
+        for i in range(len(idlist)) :
+            print(i,'id written solo:',idlist[i][0])
+            print('id locs:',bbox)
+            print('id loc:',bbox[i][0][0][0])
+            img = cv2.putText(img, str(idlist[i][0]),(int(bbox[i][0][0][0]), int(bbox[i][0][0][1])),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0, 0),2)
     except:
         pass
     aruco.drawDetectedMarkers(img,bbox)

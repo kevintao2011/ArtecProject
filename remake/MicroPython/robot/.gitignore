@@ -149,6 +149,7 @@ dmypy.json
 ### User Specified Folder ###
 remake/arteclibs/
 remake/MicroPython/RobotTemplate/
+remake/MicroPython/robot/sbmp-20190830-v0.9.8.bin
 
 
 ### WorkSpace ###
