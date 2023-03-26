@@ -65,35 +65,35 @@ if __name__ == '__main__':
     
     cliConnected:bool
     command:str = ""
-    while True: # server main loop
+    while True:# server main loop
         start = time.time()
         # print(len(serverSockets))
-        rsockets = [] #rosckets includes server sockets and robot socket in robots dictionary
+        rsockets = []#rosckets includes server sockets and robot socket in robots dictionary
         #d
         rsockets.extend(serverSockets)
         # print(robots.values(),len(robots.values()))
         if robots:
             rsockets.extend([s for s in robots]) #why this stacks?
         try:
-            rsockets.append(camSocket)
+            rsockets.append(camSocket) #no CAM
         except:
-            pass #no CAM
+            pass
         try:
-            rsockets.append(cliSocket)
+            rsockets.append(cliSocket) # no cli
         except:
-            pass # no cli
+            pass
         try:
-            rsockets.append(guiSocket)
+            rsockets.append(guiSocket)# no gui
         except:
-            pass # no gui
+            pass
         
         # print("rsocks:",rsockets)
-        read_sockets, write_sockets, error_sockets = select.select(rsockets, [s for s in robots], [],0)
+        read_sockets, write_sockets, error_sockets = select.select(rsockets, [], [],0)
        
             
         sock:socket.socket
-        readTime = time.time()
         for sock in read_sockets:
+            readTime = time.time()
             # print(sock.getsockname() ,'is readable')
             if sock in serverSockets:
                 print('From server')
@@ -166,11 +166,10 @@ if __name__ == '__main__':
                         print(targets)
                         for id in targets:
                             robotActionsDict[id] = lib.analyze(command,id,robots)
-                            # write_sockets.append(lib.Robot.robo
-                            #                      tIDdict[id])
+                            write_sockets.append(lib.Robot.robotIDdict[id])
                         for id in robotActionsDict:
                             robots[lib.Robot.robotIDdict[id]].action=robotActionsDict.get(id)
-                        print('clicmd:',robotActionsDict)
+                        print('Analyzed target and action',robotActionsDict)
                         
                             
                         
@@ -180,7 +179,7 @@ if __name__ == '__main__':
                         recvCAMTime=time.time()
                         camdata = lib.recvCAM(sock) #return plain jsontext
                         if (time.time()-recvCAMTime>0.01):
-                            print('read in ',time.time()-recvCAMTime) 
+                            print('read in ',time.time()-recvCAMTime)
                         locDict = lib.processLocation(robots.values(),camdata) #load json and return nested dict {"id"}
                         if locDict:
                             for i in  (locDict.keys()):
@@ -192,22 +191,21 @@ if __name__ == '__main__':
                                     robots[lib.Robot.robotIDdict[i]].orientation = locDict[i].orientation
                                 except:
                                     # print(f'robot not yet register! ',i)
-                                    print('No such robot' , i)
-               
-                # print('From robots',robots[sock])
+                                    pass
+                try:
+                    # print('From robots',robots[sock])
 
-                if(sock in robots): #all robots
-                    # print("Get Request from robot",robots[sock].arindex)
-                    recvTime=time.time()
-                    # sock.recv(1024) #disable coz robot no longer send thngs
-                    # if(robots[sock].continuousActionFlag): #not actually receive new command , just doing reapeated actiob (now moved ouside coz not trigger by response) 
-                    #     a =lib.analyze(robots[sock].contAction,robots[sock].arindex,robots)
-                    #     print('[read_s:] reanalyze from cont action:',a)
-                    # # print('wait robo response in ',time.time()-recvTime)
-                    # if not sock in write_sockets:
-                    #     write_sockets.append(sock)
+                    if(robots[sock]):
+                        if(robots[sock].continuousActionFlag):
+                            a =lib.analyze(robots[sock].contAction,robots[sock].arindex,robots)
+                            print('[read_s:] reanalyze from cont action:',a)
+                        print("Request from robot",robots[sock].arindex)
+                        sock.recv(1024)
+                        if not sock in write_sockets:
+                            write_sockets.append(sock)
                         
-                
+                except:
+                    pass
                
                 # for r in robots:
                 #     print(sock,robots[r]["socket"])
@@ -215,43 +213,32 @@ if __name__ == '__main__':
                 #         lib.
                 #         write_sockets.append(robots[r]["socket"])
                 #         print(robots[r]["socket"], "is add to write")
-        if (time.time()-readTime>0.01):
-            print('read in ',time.time()-readTime)            
+                if (time.time()-readTime>0.01):
+                    print('read in ',time.time()-readTime)    
         # try:         
         #     if lib.Robot.robotSockDict.keys:
         #         write_sockets.append(guiSocket)
         # except:
         #     pass
-        
-        #update continuous actio
-        for r in robots:
-            if(robots[r].continuousActionFlag): #not actually receive new command , just doing reapeated actiob
-                a =lib.analyze(robots[r].contAction,robots[r].arindex,robots) #update action attribute
-                print('[read_s:] reanalyze from cont action:',a)
-            # print('wait robo response in ',time.time()-recvTime)
-                # write_sockets.append(r)
-        
-        
-        writeTime=time.time()
+        if write_sockets:
+            print('write sockets: ', write_sockets)
         for sock in write_sockets: #how to access robot socket asap
             if sock in lib.Robot.robotSockDict.keys():
-                if robots[sock] and robots[sock].action!='': #hv sth to send
+                if robots[sock] and robots[sock].action!='':
                     try:
                         print(command)
                         lib.sendline(sock,robots[sock].action)
                         print("sent to ",robots[sock].arindex)
-                        robots[sock].action = '' # cleared action should be recovered in write
+                        robots[sock].action = ''
                     except:
-                        print('fail to send')
-            else:#GUI
-                # r = [robots[sock] for sock in lib.Robot.robotSockDict.keys()]
-                # r =pickle.dumps(r)
-                # sock.send(r)
-                pass
-        if write_sockets:        
-            # print('writesockets',write_sockets) 
-            if (time.time()-writeTime>0):
-                print('write in ',time.time()-writeTime)
+                        print('cannot send')
+            # else:#GUI
+            #     r = [robots[sock] for sock in lib.Robot.robotSockDict.keys()]
+            #     r =pickle.dumps(r)
+            #     sock.send(r)
+            #     pass
+                
+          
             # try:
             #     command
             #     lib.sendline(sock,command)
@@ -261,5 +248,3 @@ if __name__ == '__main__':
         # write_sockets.append
         # for 
         # print('Select cycle is:',time.time()-start)
-        if time.time()-start > 0.1:
-            print('server cycle time:',time.time()-start)

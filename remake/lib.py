@@ -249,8 +249,8 @@ def sendline(socket:socket.socket,msg):
     
     try:
         socket.send(message)
-    except socket.error as error:
-        print(error)
+    except :
+        print('failed to send to socket', socket)
     # print(logg(),"sent")
 
 def jsonSend(socket,text): # send JSON with  cmd:host data:unify action
@@ -524,7 +524,7 @@ def getTargets(message:str,robots:dict):
             #     print('ID Pixel: ',Robot.IDPixelSize)
             # except:
             #     print('RobotSIzeNot yet Captured')
-            print(robots.keys)
+            print(robots.keys())
             
         else:
             print(fnlogg(),"Mass Command")

@@ -240,7 +240,7 @@ def updateCMD(s: socket.socket):
         try:
             sendLine(s,ROBOTID) # for select
         except:
-            raise OSError
+            machine.reset()
         #able when use select
         print("waiting respon")
         data = s.readline().decode(FORMAT).strip()
