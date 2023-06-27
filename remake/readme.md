@@ -1,3 +1,9 @@
+#   Required folder
+    - Server : Server4.py
+    - Object Dectect porgram: cameraNew.py
+    - Command line interface: clientRemakeNew.py
+    
+
 #   Recommended development environment
 This project is developed using extenstions and Visaul Studio Code and on Windows system. It is recommended to follow same setup for better development experience. The setup guide is provided below
 
